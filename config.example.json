@@ -1,0 +1,137 @@
+{
+  "port": 3920,
+  "qbooth": {
+    "host": "127.0.0.1",
+    "port": 8730,
+    "password": "",
+    "eventId": "",
+    "autoStart": false
+  },
+  "language": "en",
+  "assistantName": "Luma",
+  "persona": "ceria",
+  "talk": "normal",
+  "eventInfo": "",
+  "avatar": "avatars/sample.vrm",
+  "voice": "",
+  "autoDownload": true,
+  "pollMs": 400,
+  "idleInviteSec": 30,
+  "overlay": {
+    "side": "right",
+    "size": 70,
+    "layout": null,
+    "menuButton": true,
+    "langButton": true,
+    "langPin": true
+  },
+  "tts": {
+    "engine": {
+      "id": "piper",
+      "en": "sapi",
+      "zh": "piper"
+    },
+    "browserFallback": true,
+    "piper": {
+      "exe": "tools/piper/piper.exe",
+      "models": {
+        "id": "tools/piper/id_ID-news_tts-medium.onnx",
+        "en": "tools/piper/en_US-amy-medium.onnx",
+        "zh": "tools/piper/zh_CN-huayan-medium.onnx"
+      }
+    },
+    "omnivoice": {
+      "url": "http://127.0.0.1:3900",
+      "profiles": {
+        "id": "",
+        "en": "",
+        "zh": ""
+      },
+      "instruct": "female, young adult, moderate pitch",
+      "seed": 4242,
+      "effect": "broadcast"
+    },
+    "sapi": {
+      "voices": {
+        "en": "Microsoft Zira Desktop"
+      }
+    },
+    "voices": {
+      "id": {
+        "female": {
+          "engine": "piper",
+          "model": "tools/piper/id_ID-news_tts-medium.onnx"
+        },
+        "male": {
+          "engine": "winrt",
+          "voice": "Andika"
+        }
+      },
+      "en": {
+        "female": {
+          "engine": "sapi",
+          "voice": "Microsoft Zira Desktop"
+        },
+        "male": {
+          "engine": "sapi",
+          "voice": "Microsoft David Desktop"
+        }
+      },
+      "zh": {
+        "female": {
+          "engine": "piper",
+          "model": "tools/piper/zh_CN-huayan-medium.onnx"
+        },
+        "male": {
+          "engine": "winrt",
+          "voice": "Kangkang"
+        }
+      }
+    }
+  },
+  "stt": {
+    "exe": "tools/whisper/whisper-server.exe",
+    "model": "models/ggml-small-q5_1.bin",
+    "port": 3921,
+    "threads": 8,
+    "audioCtx": 640,
+    "useGpu": true,
+    "gpuExe": "tools/whisper-cuda/whisper-server.exe",
+    "gpuModel": "models/ggml-large-v3-turbo-q5_0.bin",
+    "url": ""
+  },
+  "llm": {
+    "provider": "local",
+    "fallbackLocal": true,
+    "gemini": {
+      "apiKey": "",
+      "model": "gemini-3.5-flash",
+      "url": "https://generativelanguage.googleapis.com/v1beta/openai/chat/completions"
+    },
+    "openrouter": {
+      "apiKey": "",
+      "model": "google/gemini-2.5-flash",
+      "url": "https://openrouter.ai/api/v1/chat/completions"
+    },
+    "live": {
+      "model": "gemini-3.8-live",
+      "voice": "Kore",
+      "bargeIn": false
+    },
+    "exe": "tools/llama/llama-server.exe",
+    "model": "models/Qwen3.5-0.8B-Q8_0.gguf",
+    "port": 3922,
+    "device": "",
+    "gpuLayers": 99,
+    "ctx": 12288,
+    "temperature": 0.7,
+    "maxTokens": 200,
+    "url": ""
+  },
+  "micDevice": "",
+  "micSensitivity": 5,
+  "saveRecordings": false,
+  "settingsPin": "",
+  "display": 0,
+  "listenMode": "tap"
+}

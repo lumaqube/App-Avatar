@@ -1,0 +1,10 @@
+{
+  "sample.vrm": { "name": "Luma", "gender": "female" },
+  "Seed-san.vrm": { "name": "Seed-san", "gender": "female" },
+  "shibu.vrm": { "name": "Shibu", "gender": "female" },
+  "bibi.vrm": { "name": "Bibi", "gender": "female" },
+  "vita.vrm": { "name": "Vita", "gender": "female" },
+  "victoria.vrm": { "name": "Victoria", "gender": "female" },
+  "fumiriya.vrm": { "name": "Fumiriya", "gender": "male" },
+  "ren.vrm": { "name": "Ren", "gender": "male" }
+}

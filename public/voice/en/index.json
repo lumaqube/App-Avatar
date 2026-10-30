@@ -1,0 +1,232 @@
+{
+ "e29dc7e0809d.wav": {
+  "text": "Hi! Welcome to the photo booth. Let's take a picture!",
+  "engine": "sapi",
+  "at": "2026-10-29T10:08:51.097Z"
+ },
+ "3fac88233ad4.wav": {
+  "text": "Hello! Nice to see you. Ready for some fun photos?",
+  "engine": "sapi",
+  "at": "2026-10-29T10:08:51.776Z"
+ },
+ "754399f49b94.wav": {
+  "text": "Welcome! Touch the screen to start.",
+  "engine": "sapi",
+  "at": "2026-10-29T10:08:52.405Z"
+ },
+ "5ea61de008aa.wav": {
+  "text": "Come take a photo! Touch start on the screen.",
+  "engine": "sapi",
+  "at": "2026-10-29T10:08:53.092Z"
+ },
+ "c73225c62bbf.wav": {
+  "text": "Bring your friends, the more the merrier!",
+  "engine": "sapi",
+  "at": "2026-10-29T10:08:53.739Z"
+ },
+ "2075198b06c0.wav": {
+  "text": "Want a souvenir from today? Take a photo here!",
+  "engine": "sapi",
+  "at": "2026-10-29T10:08:54.423Z"
+ },
+ "78f2c3677648.wav": {
+  "text": "Psst, your photo can be printed right away.",
+  "engine": "sapi",
+  "at": "2026-10-29T10:08:55.163Z"
+ },
+ "dd00521fbf4d.wav": {
+  "text": "Please fill in the short survey first.",
+  "engine": "sapi",
+  "at": "2026-10-29T10:08:55.804Z"
+ },
+ "2e94d2e91414.wav": {
+  "text": "Pick a category you like.",
+  "engine": "sapi",
+  "at": "2026-10-29T10:08:56.432Z"
+ },
+ "0fd1404b4d6b.wav": {
+  "text": "Now pick your favourite template.",
+  "engine": "sapi",
+  "at": "2026-10-29T10:08:57.114Z"
+ },
+ "183961e21648.wav": {
+  "text": "Which style do you like? Pick a template.",
+  "engine": "sapi",
+  "at": "2026-10-29T10:08:57.814Z"
+ },
+ "1ca60a1f175a.wav": {
+  "text": "Please fill in your details first.",
+  "engine": "sapi",
+  "at": "2026-10-29T10:08:58.502Z"
+ },
+ "faca41d8f823.wav": {
+  "text": "Ready? Look at the camera, then press the photo button.",
+  "engine": "sapi",
+  "at": "2026-10-29T10:08:59.163Z"
+ },
+ "c0e3e901a75f.wav": {
+  "text": "Strike a pose, and press the photo button when you're ready.",
+  "engine": "sapi",
+  "at": "2026-10-29T10:08:59.873Z"
+ },
+ "5a0539ba165f.wav": {
+  "text": "Smile!",
+  "engine": "sapi",
+  "at": "2026-10-29T10:09:00.550Z"
+ },
+ "5e7ae1f7b427.wav": {
+  "text": "Get ready, smile!",
+  "engine": "sapi",
+  "at": "2026-10-29T10:09:01.214Z"
+ },
+ "580809bdb2d6.wav": {
+  "text": "Photo 2. New pose!",
+  "engine": "sapi",
+  "at": "2026-10-29T10:09:01.936Z"
+ },
+ "be29cef6e5e2.wav": {
+  "text": "Photo 3. New pose!",
+  "engine": "sapi",
+  "at": "2026-10-29T10:09:02.739Z"
+ },
+ "f2c84f117c48.wav": {
+  "text": "Photo 4. New pose!",
+  "engine": "sapi",
+  "at": "2026-10-29T10:09:03.531Z"
+ },
+ "f960e0fb11d9.wav": {
+  "text": "Photo 5. New pose!",
+  "engine": "sapi",
+  "at": "2026-10-29T10:09:04.258Z"
+ },
+ "59ac93bb487a.wav": {
+  "text": "Photo 6. New pose!",
+  "engine": "sapi",
+  "at": "2026-10-29T10:09:04.991Z"
+ },
+ "5dd0674b0284.wav": {
+  "text": "Photo 7. New pose!",
+  "engine": "sapi",
+  "at": "2026-10-29T10:09:05.720Z"
+ },
+ "4bab818b3ab2.wav": {
+  "text": "Photo 8. New pose!",
+  "engine": "sapi",
+  "at": "2026-10-29T10:09:06.429Z"
+ },
+ "0db069c87d0a.wav": {
+  "text": "Photo 9. New pose!",
+  "engine": "sapi",
+  "at": "2026-10-29T10:09:07.108Z"
+ },
+ "48979087ae33.wav": {
+  "text": "Photo 10. New pose!",
+  "engine": "sapi",
+  "at": "2026-10-29T10:09:07.841Z"
+ },
+ "1ef51be3e97f.wav": {
+  "text": "Photo 2. Change it up!",
+  "engine": "sapi",
+  "at": "2026-10-29T10:09:08.547Z"
+ },
+ "e648612020e4.wav": {
+  "text": "Photo 3. Change it up!",
+  "engine": "sapi",
+  "at": "2026-10-29T10:09:09.229Z"
+ },
+ "c1110ce48318.wav": {
+  "text": "Photo 4. Change it up!",
+  "engine": "sapi",
+  "at": "2026-10-29T10:09:09.940Z"
+ },
+ "e27a765e51ff.wav": {
+  "text": "Photo 5. Change it up!",
+  "engine": "sapi",
+  "at": "2026-10-29T10:09:10.693Z"
+ },
+ "fa33b0e0ee5c.wav": {
+  "text": "Photo 6. Change it up!",
+  "engine": "sapi",
+  "at": "2026-10-29T10:09:11.414Z"
+ },
+ "b6806c7e7e44.wav": {
+  "text": "Photo 7. Change it up!",
+  "engine": "sapi",
+  "at": "2026-10-29T10:09:12.160Z"
+ },
+ "302636c04703.wav": {
+  "text": "Photo 8. Change it up!",
+  "engine": "sapi",
+  "at": "2026-10-29T10:09:12.910Z"
+ },
+ "34cb45666c71.wav": {
+  "text": "Photo 9. Change it up!",
+  "engine": "sapi",
+  "at": "2026-10-29T10:09:13.670Z"
+ },
+ "53cbf21a36b1.wav": {
+  "text": "Photo 10. Change it up!",
+  "engine": "sapi",
+  "at": "2026-10-29T10:09:14.420Z"
+ },
+ "f294e0c1410c.wav": {
+  "text": "Looks great! Retake, or go on to process?",
+  "engine": "sapi",
+  "at": "2026-10-29T10:09:15.186Z"
+ },
+ "8ba9991db6c5.wav": {
+  "text": "Nice! Press process to continue.",
+  "engine": "sapi",
+  "at": "2026-10-29T10:09:15.931Z"
+ },
+ "af93ea56f948.wav": {
+  "text": "Okay, let's do that one again.",
+  "engine": "sapi",
+  "at": "2026-10-29T10:09:16.667Z"
+ },
+ "5716db7b0181.wav": {
+  "text": "One moment, your photo is being processed.",
+  "engine": "sapi",
+  "at": "2026-10-29T10:09:17.319Z"
+ },
+ "4a19d0bfe4f8.wav": {
+  "text": "Hang on, getting your photo ready.",
+  "engine": "sapi",
+  "at": "2026-10-29T10:09:17.957Z"
+ },
+ "fe66444a19a5.wav": {
+  "text": "Your photo is ready! Print it, or scan the QR to download.",
+  "engine": "sapi",
+  "at": "2026-10-29T10:09:18.664Z"
+ },
+ "3b7a58cf8740.wav": {
+  "text": "Ta-da! Looks great. Print it or scan the QR.",
+  "engine": "sapi",
+  "at": "2026-10-29T10:09:19.333Z"
+ },
+ "e6b436e50b69.wav": {
+  "text": "Please follow the steps on the screen.",
+  "engine": "sapi",
+  "at": "2026-10-29T10:09:20.171Z"
+ },
+ "1f27be312b5e.wav": {
+  "text": "Thank you! See you again.",
+  "engine": "sapi",
+  "at": "2026-10-29T10:09:20.918Z"
+ },
+ "556124afbf19.wav": {
+  "text": "Thanks for stopping by! Bye!",
+  "engine": "sapi",
+  "at": "2026-10-29T10:09:21.676Z"
+ },
+ "2f58b50bb970.wav": {
+  "text": "The photo booth is getting ready. One moment.",
+  "engine": "sapi",
+  "at": "2026-10-29T10:09:22.429Z"
+ },
+ "6fab79d6cbda.wav": {
+  "text": "Lost connection to Q-Booth.",
+  "engine": "sapi",
+  "at": "2026-10-29T10:09:23.189Z"
+ }
+}

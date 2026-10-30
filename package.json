@@ -1,0 +1,24 @@
+{
+  "name": "qbooth-avatar-overlay",
+  "version": "0.2.0",
+  "description": "Q-Booth virtual assistant on top of the QBooth screen: a 3D character that greets and guides guests and presses QBooth buttons by voice (Local API)",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "start": "node server.js",
+    "mock": "node server.js --mock",
+    "app": "set ELECTRON_RUN_AS_NODE=&& electron .",
+    "app:mock": "set ELECTRON_RUN_AS_NODE=&& electron . --mock",
+    "build": "electron-packager . \"QBooth Avatar\" --platform=win32 --arch=x64 --out=dist --overwrite --no-asar --ignore=\"^[\\/](dist|cache|logs|config.json)([\\/]|$)\""
+  },
+  "dependencies": {
+    "@pixiv/three-vrm": "^3.5.5",
+    "three": "^0.186.1",
+    "ws": "^8.22.0"
+  },
+  "devDependencies": {
+    "@electron/packager": "^20.3.0",
+    "electron": "^45.1.0"
+  },
+  "main": "electron/main.js"
+}
