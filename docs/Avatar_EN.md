@@ -1,18 +1,21 @@
-# QBooth Avatar: the recipe
+# Avatar: the recipe
 
-Other languages: QBoothAvatar_ID.md (Bahasa Indonesia), QBoothAvatar_ZH.md (中文).
+Other languages: Avatar_ID.md (Bahasa Indonesia), Avatar_ZH.md (中文).
 
-How QBooth Avatar is built, what it runs on, how to get the cloud API keys, and how to build
+How Avatar is built, what it runs on, how to get the cloud API keys, and how to build
 it again from nothing. Written so that a developer or an AI agent can reproduce it step by
 step. State of the app: 30 October 2026, version 0.2 (`package.json` name
-`qbooth-avatar-overlay`).
+`avatar-overlay`).
 
-QBooth Avatar is a Windows desktop app: a **3D character that stands on top of Q-Booth's running
-event screen**. It greets guests, talks with them by voice, guides them through Q-Booth's own
-screens (welcome, template picker, camera, review, result) and presses Q-Booth's buttons for
+Avatar is a Windows desktop app: a **3D character that stands on top of the booth app's running
+event screen**. It greets guests, talks with them by voice, guides them through the booth app's own
+screens (welcome, template picker, camera, review, result) and presses the booth app's buttons for
 them when asked ("ayo foto", "yang kedua", "foto", "ulang", "proses", "cetak", "QR"). Everything
-goes through the **Q-Booth Local API**. It has no camera, live view or screens of its own: Q-Booth
-does all the showing, the assistant only talks and presses.
+goes through the booth app's **Local API**. It has no camera, live view or screens of its own: the
+booth app does all the showing, the assistant only talks and presses.
+
+Works with QBooth.exe, BleepShare.exe and XBooth.exe; the name shown comes from the connected app
+(section 5.5 and the README's "Brands").
 
 Everything runs on the booth PC. The only optional cloud parts are the AI brain (Google Gemini,
 OpenRouter) and Gemini Live (real-time voice). Section 7 explains how to get their API keys.
@@ -50,9 +53,9 @@ GPU. It also runs **without a discrete GPU** (CPU speech recognition, LLM on the
 ## 2. How it fits together
 
 ```
- ┌──────────── QBooth Avatar.exe (Electron) ─────────────────────────────────────────────┐
+ ┌──────────── Avatar.exe (Electron) ────────────────────────────────────────────────────┐
  │ overlay window: whole screen, transparent, frameless, always on top, cut to the       │
- │ character's outline (win.setShape) so Q-Booth stays visible and touchable around it   │
+ │ character's outline (win.setShape) so the booth app stays visible and touchable       │
  │                                                                                         │
  │  page (Chromium)                       Node server (same process)  :3920               │
  │   avatar.js  three-vrm, gestures        ├─ /speak  → tts.js  → Piper / Windows voices   │
@@ -60,12 +63,12 @@ GPU. It also runs **without a discrete GPU** (CPU speech recognition, LLM on the
  │   main.js    loop, tap/hold, buttons    ├─ /chat   → chat.js → llama-server   :3922     │
  │   brain.js   what to say per screen     │                      or Gemini / OpenRouter   │
  │   layout.js  placing char + buttons     ├─ /live   → live.js → Gemini Live (WSS)        │
- │   settings.js, avatar-editor.js         ├─ /qb/*   → Q-Booth Local API :8730 (password  │
+ │   settings.js, avatar-editor.js         ├─ /qb/*   → booth app Local API :8730 (password│
  │   boot.js    start-up + downloads       │            added on the server)               │
  │                                         ├─ /app/*  → window shape, layout, pick a file  │
  │                                         └─ /settings*, /avatars, /services, /config.json│
  └─────────────────────────────────────────────────────────────────────────────────────────┘
-          ▲ guest: mic in, speaker out                       Q-Booth (its own kiosk window)
+          ▲ guest: mic in, speaker out                     the booth app (its own kiosk window)
 ```
 
 - The **page** is the whole user interface. It talks only to its own server
@@ -82,7 +85,7 @@ GPU. It also runs **without a discrete GPU** (CPU speech recognition, LLM on the
 ## 3. Folder layout
 
 ```
-QBoothAvatar/
+QBoothAvatar/           the working folder (the git repo of the source is App-Avatar)
   package.json            dependencies, scripts (start, mock, app, app:mock, build)
   config.example.json     every setting with its default (read first)
   config.json             the owner's overrides only (not in git; next to the exe when packaged)
@@ -91,13 +94,13 @@ QBoothAvatar/
   setup.js                first start from source: downloads missing tools and models
   services.js             starts whisper-server and llama-server, GPU detection, health
   tts.js                  text to speech: clips → cache → Piper / Windows voices / OmniVoice
-  pronounce.js            pronunciation lexicon (Q-Booth → Kyubuth, QR → kyu ar, …)
+  pronounce.js            pronunciation lexicon (QR → kyu ar, Q-Booth → Kyubuth, …)
   stt.js                  speech to text: vocabulary prompt per screen, hallucination filter
   chat.js                 conversation: system prompt, tools, intent router, talk levels, LLMs
   persona.js              5 personalities (style text + voice speed)
   live.js                 Gemini Live proxy (/live): setup, voices, tools
   settings.js             editable fields, read/save, Local API connect/run/stop, LLM test
-  mock-qbooth.js          a fake Q-Booth Local API for testing (port 8739)
+  mock-qbooth.js          a fake booth app Local API for testing (port 8739)
   openrouter-login.js     "Log in with OpenRouter" (OAuth PKCE), saves the key
   avatar-info.js          reads a VRM's name/author/licence/thumbnail
   listen.js               listen with retry (a closing old copy may still hold the port)
@@ -110,11 +113,12 @@ QBoothAvatar/
     avatar-editor.js      colours, glasses, model gallery, voice gender
     voice.js              audio playback, lip sync, per-sentence prefetch, Live PCM
     mic.js                microphone, voice detection, WAV encoding, sensitivity
-    brain.js              what to say when Q-Booth's screen changes
+    brain.js              what to say when the booth app's screen changes
     lines.js              every fixed spoken line and UI label: id / en / zh
     boot.js               start-up screen (downloads, steps, progress)
     settings.js           settings screen in tabs (id / en / zh labels)
     live.js, qbooth.js    Gemini Live client; Local API client (through /qb/*)
+    brand.js              the booth app's name ({booth} in texts), also used by the server
     avatars/              8 VRM models + avatars.json (names, genders)
     voice/                pre-rendered clips of the fixed lines (female voice)
   tools/                  binaries, not in git (downloaded on the first start)
@@ -187,9 +191,9 @@ started on the downloaded files; the GPU parts followed in the background.
 ### 4.4 Run during development
 
 ```bash
-npm run app:mock          # the desktop app with the built-in fake Q-Booth
-npm run app               # the desktop app, real Q-Booth (Local API settings in config.json)
-node server.js --mock     # page + AI servers + fake Q-Booth, no overlay window
+npm run app:mock          # the desktop app with the built-in fake booth app
+npm run app               # the desktop app, real booth app (Local API settings in config.json)
+node server.js --mock     # page + AI servers + fake booth app, no overlay window
 # open http://127.0.0.1:3920/?autostart=1&debug=1 in Chrome or Edge
 ```
 
@@ -200,7 +204,7 @@ node server.js --mock     # page + AI servers + fake Q-Booth, no overlay window
 
 ```bash
 npm run build
-# → dist/QBooth Avatar-win32-x64/QBooth Avatar.exe  (~3.4 GB with tools + models)
+# → dist/Avatar-win32-x64/Avatar.exe  (~3.4 GB with tools + models)
 ```
 
 The build leaves out `dist`, `cache`, `logs` and `config.json`.
@@ -216,8 +220,8 @@ unreadable by Windows).
 ### 5.1 The overlay window (`electron/main.js`)
 
 - **Covers the whole display** (`display`), transparent, frameless, `alwaysOnTop` at the
-  `screen-saver` level, re-asserted every 1.5 s (Q-Booth raises its kiosk window when an
-  event opens). Shown with `showInactive()`: Q-Booth keeps the keyboard focus.
+  `screen-saver` level, re-asserted every 1.5 s (the booth app raises its kiosk window when
+  an event opens). Shown with `showInactive()`: the booth app keeps the keyboard focus.
 - **`setBounds(display.bounds)` after showing and in the 1.5 s loop**: Windows otherwise
   shrinks a frameless window to the work area (1032 px instead of 1080, above the taskbar).
 - **Cut to what shows** (`win.setShape(rects)`): the page sends rectangles to `POST /app/shape`
@@ -225,7 +229,7 @@ unreadable by Windows).
   (`Avatar.screenBox`), the thinking bubble, the two buttons, the language list, the boot box.
   The rest of the screen has no window at all. While settings, the language screen, the
   avatar editor or placing are open, the shape is the whole screen.
-- **Global shortcuts** (Q-Booth has the focus, so page keys would not arrive):
+- **Global shortcuts** (the booth app has the focus, so page keys would not arrive):
   Ctrl+Alt+Shift+S settings, Ctrl+Alt+Shift+P placing, Ctrl+Alt+Shift+Q quit.
 - **One copy at a time** (`requestSingleInstanceLock`); start order: server → window → AI
   servers after the first paint (or 10 s).
@@ -264,37 +268,43 @@ unreadable by Windows).
 | `GET /speak?lang=&text=` | WAV of the text (clip / cache / engine) |
 | `POST /listen?lang=` | WAV in → `{ text, ms }` (vocabulary prompt from the current screen) |
 | `POST /chat` | `{ text, lang }` → NDJSON stream: sentences to say, actions, timing |
-| `/qb/*` | proxy to the Q-Booth Local API `/api/v1/*` (Bearer password added on the server) |
+| `/qb/*` | proxy to the booth app's Local API `/api/v1/*` (Bearer password added on the server) |
 | `POST /app/shape`, `/app/layout`, `/app/pick-part` | window shape, layout, "have it already" file |
 | `GET/POST /settings`, `/settings/unlock`, `/settings/test`, `/settings/booth`, `/settings/test-llm`, `/settings/openrouter-login`, `/settings/language`, `/settings/quit` | settings (PIN header), Local API connect / run / stop, LLM test, OpenRouter login, language (PIN-free), quit |
 | `GET/POST /avatars`, `/avatar-thumb` | VRM list and upload, thumbnails |
 | WebSocket `/live` | Gemini Live proxy (the key stays on the server) |
 
-### 5.5 Q-Booth Local API
+### 5.5 The booth app's Local API
 
-- Q-Booth: Settings → Advanced → **Local API** (Expert mode): on; it listens on a port (8730 by
-  default) with a password.
+- The booth app comes in three brand builds with the same Local API: QBooth.exe (reports
+  "QBooth", written "Q-Booth"), BleepShare.exe ("BleepShareAI") and XBooth.exe ("XBooth"). The
+  name shown and said comes from `status.app.name` (`public/brand.js`), or the **Brand name**
+  setting (`brandName`), or before any contact a neutral word ("the booth app" / "aplikasi
+  booth" / "拍照亭应用"). The settings' first tab carries that name (e.g. "XBooth"; "Booth" before
+  contact). The mock reports "QBooth" unless `mockBrand` or `QBA_MOCK_BRAND` names another.
+- In the booth app: Settings → Advanced → **Local API** (Expert mode): on; it listens on a port
+  (8730 by default) with a password.
 - Calls: `GET /api/v1/status`, `GET /api/v1/events`, `GET /api/v1/templates`,
   `POST /api/v1/<command>` with `Authorization: Bearer <password>`.
 - Status gives the page (`welcome`, `templatePicker`, `camera`, `result`…), the session, the
   camera phase (`liveIdle`, `counting`, `capturing`, `review`), busy flags and `available`
   commands. The app only offers tools that are in `available`.
-- Settings → Q-Booth: address, port, password → **Connect** fills the **Event** list (template
+- Settings → the booth tab (named after the brand): address, port, password → **Connect** fills the **Event** list (template
   counts, the running one marked); **Run** / **Stop** start and end an event; "Run this event
-  when the app opens" (`qbooth.autoStart`) launches it once Q-Booth answers, if none runs.
+  when the app opens" (`qbooth.autoStart`) launches it once the booth app answers, if none runs.
   Errors come as codes (`offline`, `unauthorized`, `too_many_attempts`, `event_running`,
   `editor_open`, `dialog_open`, …) shown in the UI language.
-- In the Q-Booth event editor, the event's output monitor = the screen the character is on.
+- In the booth app's event editor, the event's output monitor = the screen the character is on.
 - `mock-qbooth.js` implements the same API on port 8739 (`--mock` or Settings → Connection →
   Mock). Connect always tests the real address fields.
 
 ### 5.6 How it guides (`public/brain.js`, `lines.js`, `chat.js`)
 
-- **brain.js**: the page polls `/qb/status` every 400 ms; each new Q-Booth page or camera
+- **brain.js**: the page polls `/qb/status` every 400 ms; each new booth app page or camera
   phase gives a fixed line with a gesture (welcome, template picker, ready, countdown,
   review, processing, result). Idle on Welcome → an invitation every `idleInviteSec`.
-- **chat.js**: the guest's words + Q-Booth's status → the LLM with tools for exactly the
-  commands Q-Booth accepts now. Tools: `start_session` → `session/start`, `choose_template` →
+- **chat.js**: the guest's words + the booth app's status → the LLM with tools for exactly
+  the commands the booth app accepts now. Tools: `start_session` → `session/start`, `choose_template` →
   `template/select`, `take_photo` → `camera/capture`, `retake_photo` → `camera/retake`,
   `process_photo` → `camera/process`, `print_photo` → `result/print`, `show_qr` → `result/qr`,
   `start_over` / `finish_session` → `session/end`.
@@ -303,12 +313,12 @@ unreadable by Windows).
   current screen's words (edit distance), `START_OVER` ("mulai lagi", "let's start over").
   **No screen skipping**: a template is chosen only on the template picker; naming one on
   Welcome starts the session instead. Questions and negations ("bisa cetak?", "jangan foto
-  dulu") are not commands. Numbers count Q-Booth's cards in their on-screen order.
+  dulu") are not commands. Numbers count the booth app's cards in their on-screen order.
 - **Intent picker**: wordings the regexes miss go to a small JSON-schema classification on
   the LLM's second slot (`id_slot` 1); it never picks print or finish by itself.
 - **Routed commands answer with a fixed line** (`ACK`), no LLM wait (0.01 s).
 - **Prices**: small models invent them, so a price question gets a fixed answer (`PRICE`).
-- **System prompt**: name, persona, talk level, language, Q-Booth's flow, the event info (the
+- **System prompt**: name, persona, talk level, language, the booth app's name and flow, the event info (the
   only facts it may give), rules (short spoken sentences, never claim an action it did not do,
   never name models or software). It stays identical all conversation (prompt cache); the
   booth status rides on each user message.
@@ -371,9 +381,10 @@ Measured averages with the 0.8B model: 10 / 20 / 35 words.
   say how to install it (Windows Settings → Time & language → Language & region → add the
   language → Text-to-speech). Gemini Live takes Puck (male) / Kore (female) when its chosen
   voice is the other gender.
-- **Pronunciation** (`pronounce.js`, before synthesis): id `Q-Booth` → Kyubuth, `QR` → kyu ar,
+- **Pronunciation** (`pronounce.js`, before synthesis): id `QR` → kyu ar,
   `QRIS` → kris, photobooth → fotobut, template → templet, scan → sken, upload → aplod, online
-  → onlen; zh `Q-Booth` → 丘布斯, QR → 二维码, QRIS → 克里斯; plus the owner's own list
+  → onlen; zh QR → 二维码, QRIS → 克里斯; when the brand is Q-Booth also id `Q-Booth` → Kyubuth,
+  zh `Q-Booth` → 丘布斯; plus the owner's own list
   (`pronunciations`, "written = how to say it" per line). Checked by speaking with Piper and
   hearing back with whisper.
 - Lip sync from the playing audio (loudness + spectrum → VRM `aa ih ou ee oh`).
@@ -392,11 +403,13 @@ Measured averages with the 0.8B model: 10 / 20 / 35 words.
 
 ### 5.12 Settings (`settings.js`, `public/settings.js`)
 
-- Tabs: **Q-Booth, Assistant, AI brain, Look, Microphone, Security**; a side menu on a
+- Tabs: **the booth app's name (e.g. "XBooth"), Assistant, AI brain, Look, Microphone, Security**; a side menu on a
   landscape screen, a row of tabs on a portrait one; each tab fits without scrolling.
 - A field table (`FIELDS`) defines each key's type and whether it needs a restart. Only
   changed fields are sent; secrets are write-only (empty = keep).
 - Optional **settings PIN** (`x-settings-pin` header on every change).
+- The booth tab also holds **Brand name** (`brandName`): the name to show and say; empty = what
+  the booth app reports.
 - Built-in tests: Local API connect, "Test the AI brain", mic level meter.
 - All labels in id / en / zh; server errors come as codes translated in the page.
 
@@ -417,8 +430,9 @@ Measured averages with the 0.8B model: 10 / 20 / 35 words.
 | Key | Default | Meaning |
 |---|---|---|
 | `port` | 3920 | page server (speech-to-text 3921, LLM 3922) |
-| `mock` | false | the built-in fake Q-Booth |
-| `qbooth.host / port / password` | 127.0.0.1 / 8730 / "" | Q-Booth Local API |
+| `mock / mockBrand` | false / (unset) | the built-in fake booth app; the name it reports (unset = QBooth) |
+| `qbooth.host / port / password` | 127.0.0.1 / 8730 / "" | the booth app's Local API |
+| `brandName` | "" | the booth app's name to show and say ("" = what it reports) |
 | `qbooth.eventId / autoStart` | "" / false | the event the settings run; launch it at start |
 | `language / askLanguage` | en / true | `id`, `en`, `zh`; the choice screen at launch |
 | `assistantName / persona / talk / eventInfo` | Luma / ceria / normal / "" | who it is, how it talks, how much, what it may tell |
@@ -471,7 +485,7 @@ says "saved (leave empty to keep)").
 4. Recommended: on the API Keys page, next to the key's **Unrestricted** label, click **Add
    restrictions → Restrict to Gemini API only → Restrict key**. Google rejects or blocks
    unrestricted keys in some cases, and a restricted key is safer if it leaks.
-5. In QBooth Avatar: **Settings → AI brain → Runs on: Gemini (cloud, Google)**, paste the key
+5. In Avatar: **Settings → AI brain → Runs on: Gemini (cloud, Google)**, paste the key
    into **API key**, keep the model `gemini-3.5-flash` (or another Gemini model name), keep
    **"Use the local AI if the cloud fails"** on, press **Test the AI brain**, then **Save**.
 6. For **Gemini Live**: choose **Runs on: Gemini Live (real-time voice, cloud)**; the same key
@@ -506,7 +520,7 @@ Anthropic, Meta, …). There are two ways to get the key into the app:
 **A. "Log in with OpenRouter" (easiest, in the app)**
 1. Settings → AI brain → Runs on: **OpenRouter (cloud)** → **Log in with OpenRouter**.
 2. The browser opens OpenRouter's sign-in page; sign in (or create an account) and approve
-   "QBooth Avatar". The key OpenRouter makes this way is labelled "QBooth Avatar" in your
+   "Avatar". The key OpenRouter makes this way is labelled "Avatar" in your
    Keys list.
 3. The app receives the key itself (OAuth PKCE on a one-time local callback) and shows
    "✓ Connected, key saved". Press **Test the AI brain**, then **Save**.
@@ -514,7 +528,7 @@ Anthropic, Meta, …). There are two ways to get the key into the app:
 **B. Make a key by hand**
 1. Sign in at **https://openrouter.ai** and open **https://openrouter.ai/settings/keys**
    (Keys).
-2. Click **Create Key**, give it a name (e.g. "QBooth Avatar – booth 1") and **set a credit
+2. Click **Create Key**, give it a name (e.g. "Avatar – booth 1") and **set a credit
    limit** (OpenRouter recommends a limit on every key: a leaked key can otherwise spend the
    whole balance).
 3. Copy the key (it starts with `sk-or-v1-`; it is shown only once).
@@ -531,10 +545,10 @@ at least 10 credits): too few for an event.
 If a key leaks: delete it at https://openrouter.ai/settings/keys and create a new one.
 OpenRouter also scans GitHub for exposed keys and e-mails the owner.
 
-### 7.3 The Q-Booth Local API password
+### 7.3 The booth app's Local API password
 
-Not a cloud key, but set the same way: Q-Booth → Settings → Advanced → **Local API** (Expert
-mode) → switch on, note the port and the password → QBooth Avatar Settings → Q-Booth →
+Not a cloud key, but set the same way: the booth app → Settings → Advanced → **Local API**
+(Expert mode) → switch on, note the port and the password → Avatar Settings → the booth tab →
 address (127.0.0.1 on the same PC), port, password → **Connect**.
 
 ### 7.4 Rules for keys
@@ -550,11 +564,11 @@ address (127.0.0.1 on the same PC), port, password → **Connect**.
 
 1. **Never trust a small model to act**: route clear commands in code, give every tool result
    a `next` hint, forbid claiming actions in the prompt, answer prices with a fixed line.
-2. **No screen skipping**: commands only for the screen Q-Booth shows (`available`).
+2. **No screen skipping**: commands only for the screen the booth app shows (`available`).
 3. **Latency**: constant prompt prefix + cache warm-up, two llama slots, fixed lines
    pre-voiced, per-sentence voice prefetch, whisper without temperature fallback.
 4. **Overlay windows**: `setShape` for click-through, `setBounds` after showing (work-area
-   shrink), re-assert always-on-top, `showInactive` (never steal Q-Booth's focus), global
+   shrink), re-assert always-on-top, `showInactive` (never steal the booth app's focus), global
    shortcuts.
 5. **VRM 0.x needs mirrored bone rotations.**
 6. **Hearing**: Unicode-aware filters, echo filter only for long phrases, screen vocabulary.
@@ -575,7 +589,7 @@ address (127.0.0.1 on the same PC), port, password → **Connect**.
    `/?autostart=1&lang=id&debug=1`.
 3. Drive it: `fetch('/qb/session/start', {method:'POST'})`, `/qb/status`, `window.assistant`,
    `window.__qba.settings()`; screenshots with `Page.captureScreenshot`
-   (`Emulation.setDefaultBackgroundColorOverride` transparent to composite over a Q-Booth
+   (`Emulation.setDefaultBackgroundColorOverride` transparent to composite over a booth app
    screen).
 4. Intent tests: `routeIntent` unit scripts with unseen phrasings in each language.
 5. Stop the server and the AI servers afterwards and check the ports are free.
@@ -591,7 +605,7 @@ levels, thinking cue, settings tabs, language button + PIN, placing, avatar edit
 gender, first-start downloads (from empty, resume, "have it already"), portable package.
 
 Open:
-- The real Electron overlay over a running Q-Booth event, the real microphone and the file
+- The real Electron overlay over a running booth app event, the real microphone and the file
   dialog of "have it already" are not yet tested by the owner on the booth PC.
 - Male Indonesian / Mandarin voices need the Windows language packs (not installed on the
   test laptop: the female voice speaks instead).

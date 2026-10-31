@@ -1,18 +1,22 @@
-# QBooth Avatar: resepnya
+# Avatar: resepnya
 
-Versi bahasa lain: QBoothAvatar_EN.md (English), QBoothAvatar_ZH.md (中文).
+Versi bahasa lain: Avatar_EN.md (English), Avatar_ZH.md (中文).
 
-Cara QBooth Avatar dibuat, apa saja yang dipakainya, cara mendapatkan API key cloud, dan cara
+Cara Avatar dibuat, apa saja yang dipakainya, cara mendapatkan API key cloud, dan cara
 membangunnya lagi dari nol. Ditulis supaya developer atau AI agent bisa mengulanginya langkah
 demi langkah. Kondisi app: 30 Oktober 2026, versi 0.2 (`package.json` name
-`qbooth-avatar-overlay`).
+`avatar-overlay`).
 
-QBooth Avatar adalah app desktop Windows: **karakter 3D yang berdiri di atas layar event Q-Booth
+Avatar adalah app desktop Windows: **karakter 3D yang berdiri di atas layar event aplikasi booth
 yang sedang berjalan**. Ia menyapa tamu, mengobrol dengan mereka lewat suara, memandu mereka
-melewati layar-layar Q-Booth sendiri (welcome, template picker, kamera, review, hasil) dan menekan
-tombol Q-Booth untuk mereka kalau diminta ("ayo foto", "yang kedua", "foto", "ulang", "proses",
-"cetak", "QR"). Semuanya lewat **Q-Booth Local API**. App ini tidak punya kamera, live view atau
-layar sendiri: Q-Booth yang menampilkan semuanya, asisten hanya bicara dan menekan tombol.
+melewati layar-layar aplikasi booth sendiri (welcome, template picker, kamera, review, hasil) dan
+menekan tombol aplikasi booth untuk mereka kalau diminta ("ayo foto", "yang kedua", "foto",
+"ulang", "proses", "cetak", "QR"). Semuanya lewat **Local API** aplikasi booth. App ini tidak punya
+kamera, live view atau layar sendiri: aplikasi booth yang menampilkan semuanya, asisten hanya
+bicara dan menekan tombol.
+
+Bekerja dengan QBooth.exe, BleepShare.exe dan XBooth.exe; nama yang tampil berasal dari aplikasi
+yang tersambung (bagian 5.5 dan "Brands" di README).
 
 Semuanya berjalan di PC booth. Bagian cloud yang opsional hanya otak AI (Google Gemini,
 OpenRouter) dan Gemini Live (suara realtime). Bagian 7 menjelaskan cara mendapatkan API key-nya.
@@ -50,10 +54,10 @@ Intel UHD. App ini juga jalan **tanpa GPU diskrit** (pengenalan suara di CPU, LL
 ## 2. Bagaimana semuanya tersambung
 
 ```
- ┌──────────── QBooth Avatar.exe (Electron) ─────────────────────────────────────────────┐
+ ┌──────────── Avatar.exe (Electron) ────────────────────────────────────────────────────┐
  │ jendela overlay: seluruh layar, transparan, tanpa bingkai, selalu di atas, dipotong    │
- │ mengikuti garis karakter (win.setShape) sehingga Q-Booth tetap terlihat dan bisa       │
- │ disentuh di sekitarnya                                                                  │
+ │ mengikuti garis karakter (win.setShape) sehingga aplikasi booth tetap terlihat dan     │
+ │ bisa disentuh di sekitarnya                                                             │
  │                                                                                         │
  │  halaman (Chromium)                    Server Node (proses yang sama)  :3920           │
  │   avatar.js  three-vrm, gerakan         ├─ /speak  → tts.js  → Piper / suara Windows    │
@@ -61,12 +65,12 @@ Intel UHD. App ini juga jalan **tanpa GPU diskrit** (pengenalan suara di CPU, LL
  │   main.js    loop, ketuk/tahan, tombol  ├─ /chat   → chat.js → llama-server   :3922     │
  │   brain.js   apa yang diucapkan per     │                      atau Gemini / OpenRouter │
  │              layar                      ├─ /live   → live.js → Gemini Live (WSS)        │
- │   layout.js  menempatkan karakter +     ├─ /qb/*   → Q-Booth Local API :8730 (password  │
- │              tombol                     │            ditambahkan di server)             │
+ │   layout.js  menempatkan karakter +     ├─ /qb/*   → Local API aplikasi booth :8730     │
+ │              tombol                     │            (password ditambahkan di server)   │
  │   settings.js, avatar-editor.js         ├─ /app/*  → bentuk jendela, layout, pilih file │
  │   boot.js    start-up + unduhan         └─ /settings*, /avatars, /services, /config.json│
  └─────────────────────────────────────────────────────────────────────────────────────────┘
-          ▲ tamu: mic masuk, speaker keluar                  Q-Booth (jendela kiosk-nya sendiri)
+          ▲ tamu: mic masuk, speaker keluar          aplikasi booth (jendela kiosk-nya sendiri)
 ```
 
 - **Halaman** adalah seluruh antarmuka pengguna. Ia hanya bicara dengan server-nya sendiri
@@ -83,7 +87,7 @@ Intel UHD. App ini juga jalan **tanpa GPU diskrit** (pengenalan suara di CPU, LL
 ## 3. Struktur folder
 
 ```
-QBoothAvatar/
+QBoothAvatar/           folder kerja (repo git source-nya: App-Avatar)
   package.json            dependency, script (start, mock, app, app:mock, build)
   config.example.json     semua pengaturan dengan nilai default-nya (baca ini dulu)
   config.json             hanya override milik owner (tidak di git; di sebelah exe kalau sudah di-package)
@@ -92,13 +96,13 @@ QBoothAvatar/
   setup.js                start pertama dari source: mengunduh tool dan model yang belum ada
   services.js             menjalankan whisper-server dan llama-server, deteksi GPU, health
   tts.js                  text to speech: klip → cache → Piper / suara Windows / OmniVoice
-  pronounce.js            kamus pelafalan (Q-Booth → Kyubuth, QR → kyu ar, …)
+  pronounce.js            kamus pelafalan (QR → kyu ar, Q-Booth → Kyubuth, …)
   stt.js                  speech to text: prompt kosakata per layar, filter halusinasi
   chat.js                 percakapan: system prompt, tool, intent router, gaya bicara, LLM
   persona.js              5 kepribadian (teks gaya + kecepatan suara)
   live.js                 proxy Gemini Live (/live): setup, suara, tool
   settings.js             field yang bisa diubah, baca/simpan, Local API hubungkan/jalankan/hentikan, tes LLM
-  mock-qbooth.js          Q-Booth Local API palsu untuk pengujian (port 8739)
+  mock-qbooth.js          Local API aplikasi booth palsu untuk pengujian (port 8739)
   openrouter-login.js     "Login dengan OpenRouter" (OAuth PKCE), menyimpan key
   avatar-info.js          membaca nama/pembuat/lisensi/thumbnail sebuah VRM
   listen.js               listen dengan retry (salinan lama yang sedang menutup mungkin masih memegang port)
@@ -111,11 +115,12 @@ QBoothAvatar/
     avatar-editor.js      warna, kacamata, galeri model, gender suara
     voice.js              pemutaran audio, lip sync, prefetch per kalimat, PCM Live
     mic.js                mikrofon, deteksi suara, encoding WAV, sensitivitas
-    brain.js              apa yang diucapkan saat layar Q-Booth berubah
+    brain.js              apa yang diucapkan saat layar aplikasi booth berubah
     lines.js              semua kalimat tetap yang diucapkan dan label UI: id / en / zh
     boot.js               layar start-up (unduhan, langkah, progres)
     settings.js           layar pengaturan dalam tab (label id / en / zh)
     live.js, qbooth.js    client Gemini Live; client Local API (lewat /qb/*)
+    brand.js              nama aplikasi booth ({booth} di teks), juga dipakai server
     avatars/              8 model VRM + avatars.json (nama, gender)
     voice/                klip pra-render dari kalimat tetap (suara wanita)
   tools/                  binary, tidak di git (diunduh saat start pertama)
@@ -189,9 +194,9 @@ berjalan dengan file yang diunduh; bagian GPU menyusul di background.
 ### 4.4 Menjalankan saat development
 
 ```bash
-npm run app:mock          # the desktop app with the built-in fake Q-Booth
-npm run app               # the desktop app, real Q-Booth (Local API settings in config.json)
-node server.js --mock     # page + AI servers + fake Q-Booth, no overlay window
+npm run app:mock          # app desktop dengan aplikasi booth palsu bawaan
+npm run app               # app desktop, aplikasi booth asli (pengaturan Local API di config.json)
+node server.js --mock     # halaman + server AI + aplikasi booth palsu, tanpa jendela overlay
 # open http://127.0.0.1:3920/?autostart=1&debug=1 in Chrome or Edge
 ```
 
@@ -203,7 +208,7 @@ mengekspos `window.assistant`.
 
 ```bash
 npm run build
-# → dist/QBooth Avatar-win32-x64/QBooth Avatar.exe  (~3.4 GB with tools + models)
+# → dist/Avatar-win32-x64/Avatar.exe  (~3,4 GB dengan tools + models)
 ```
 
 Build tidak menyertakan `dist`, `cache`, `logs` dan `config.json`.
@@ -219,8 +224,9 @@ bisa dibaca Windows).
 ### 5.1 Jendela overlay (`electron/main.js`)
 
 - **Menutupi seluruh layar** (`display`), transparan, tanpa bingkai, `alwaysOnTop` di level
-  `screen-saver`, ditegaskan ulang tiap 1,5 detik (Q-Booth menaikkan jendela kiosk-nya saat
-  event dibuka). Ditampilkan dengan `showInactive()`: Q-Booth tetap memegang fokus keyboard.
+  `screen-saver`, ditegaskan ulang tiap 1,5 detik (aplikasi booth menaikkan jendela kiosk-nya
+  saat event dibuka). Ditampilkan dengan `showInactive()`: aplikasi booth tetap memegang fokus
+  keyboard.
 - **`setBounds(display.bounds)` setelah ditampilkan dan di loop 1,5 detik**: kalau tidak,
   Windows mengecilkan jendela tanpa bingkai ke work area (1032 px, bukan 1080, di atas taskbar).
 - **Dipotong sesuai yang tampil** (`win.setShape(rects)`): halaman mengirim persegi panjang ke
@@ -228,7 +234,7 @@ bisa dibaca Windows).
   tulangnya (`Avatar.screenBox`), gelembung berpikir, kedua tombol, daftar bahasa, kotak boot.
   Bagian layar lainnya sama sekali tidak punya jendela. Selama pengaturan, layar bahasa, editor
   avatar atau mode atur posisi terbuka, bentuknya seluruh layar.
-- **Shortcut global** (Q-Booth memegang fokus, jadi tombol keyboard di halaman tidak akan
+- **Shortcut global** (aplikasi booth memegang fokus, jadi tombol keyboard di halaman tidak akan
   sampai): Ctrl+Alt+Shift+S pengaturan, Ctrl+Alt+Shift+P atur posisi, Ctrl+Alt+Shift+Q keluar.
 - **Hanya satu salinan sekaligus** (`requestSingleInstanceLock`); urutan start: server →
   jendela → server AI setelah paint pertama (atau 10 detik).
@@ -268,38 +274,45 @@ bisa dibaca Windows).
 | `GET /speak?lang=&text=` | WAV dari teks (klip / cache / engine) |
 | `POST /listen?lang=` | WAV masuk → `{ text, ms }` (prompt kosakata dari layar saat ini) |
 | `POST /chat` | `{ text, lang }` → stream NDJSON: kalimat yang diucapkan, aksi, timing |
-| `/qb/*` | proxy ke Q-Booth Local API `/api/v1/*` (password Bearer ditambahkan di server) |
+| `/qb/*` | proxy ke Local API aplikasi booth `/api/v1/*` (password Bearer ditambahkan di server) |
 | `POST /app/shape`, `/app/layout`, `/app/pick-part` | bentuk jendela, layout, file "sudah punya" |
 | `GET/POST /settings`, `/settings/unlock`, `/settings/test`, `/settings/booth`, `/settings/test-llm`, `/settings/openrouter-login`, `/settings/language`, `/settings/quit` | pengaturan (header PIN), Local API hubungkan / jalankan / hentikan, tes LLM, login OpenRouter, bahasa (tanpa PIN), keluar |
 | `GET/POST /avatars`, `/avatar-thumb` | daftar dan upload VRM, thumbnail |
 | WebSocket `/live` | proxy Gemini Live (key tetap di server) |
 
-### 5.5 Q-Booth Local API
+### 5.5 Local API aplikasi booth
 
-- Q-Booth: Settings → Advanced → **Local API** (mode Expert): nyalakan; ia mendengarkan di
-  sebuah port (default 8730) dengan password.
+- Aplikasi booth hadir dalam tiga build brand dengan Local API yang sama: QBooth.exe (melapor
+  "QBooth", ditulis "Q-Booth"), BleepShare.exe ("BleepShareAI") dan XBooth.exe ("XBooth"). Nama
+  yang tampil dan diucapkan berasal dari `status.app.name` (`public/brand.js`), atau pengaturan
+  **Nama brand** (`brandName`), atau sebelum pernah tersambung kata netral ("aplikasi booth" /
+  "the booth app" / "拍照亭应用"). Tab pertama pengaturan memakai nama itu (mis. "XBooth"; "Booth"
+  sebelum tersambung). Mock melapor "QBooth" kecuali `mockBrand` atau `QBA_MOCK_BRAND` menyebut
+  yang lain.
+- Di aplikasi booth: Settings → Advanced → **Local API** (mode Expert): nyalakan; ia
+  mendengarkan di sebuah port (default 8730) dengan password.
 - Panggilan: `GET /api/v1/status`, `GET /api/v1/events`, `GET /api/v1/templates`,
   `POST /api/v1/<command>` dengan `Authorization: Bearer <password>`.
 - Status memberi halaman (`welcome`, `templatePicker`, `camera`, `result`…), sesi, fase kamera
   (`liveIdle`, `counting`, `capturing`, `review`), flag sibuk dan perintah yang `available`.
   App hanya menawarkan tool yang ada di `available`.
-- Pengaturan → Q-Booth: alamat, port, password → **Hubungkan** mengisi daftar **Event** (jumlah
+- Pengaturan → tab booth (bernama brand-nya): alamat, port, password → **Hubungkan** mengisi daftar **Event** (jumlah
   template, yang sedang berjalan ditandai); **Jalankan** / **Hentikan** memulai dan mengakhiri
-  event; "Jalankan event ini saat app dibuka" (`qbooth.autoStart`) menjalankannya begitu Q-Booth
-  menjawab, kalau belum ada yang berjalan. Error datang sebagai kode (`offline`, `unauthorized`,
+  event; "Jalankan event ini saat app dibuka" (`qbooth.autoStart`) menjalankannya begitu aplikasi
+  booth menjawab, kalau belum ada yang berjalan. Error datang sebagai kode (`offline`, `unauthorized`,
   `too_many_attempts`, `event_running`, `editor_open`, `dialog_open`, …) yang ditampilkan dalam
   bahasa UI.
-- Di editor event Q-Booth, monitor output event = layar tempat karakter berada.
+- Di editor event aplikasi booth, monitor output event = layar tempat karakter berada.
 - `mock-qbooth.js` mengimplementasikan API yang sama di port 8739 (`--mock` atau Pengaturan →
   Koneksi → Mock). Hubungkan selalu mengetes field alamat yang asli.
 
 ### 5.6 Cara ia memandu (`public/brain.js`, `lines.js`, `chat.js`)
 
-- **brain.js**: halaman mem-poll `/qb/status` tiap 400 ms; tiap halaman Q-Booth atau fase
+- **brain.js**: halaman mem-poll `/qb/status` tiap 400 ms; tiap halaman aplikasi booth atau fase
   kamera yang baru memberi satu kalimat tetap dengan gestur (welcome, template picker, siap,
   hitung mundur, review, proses, hasil). Diam di Welcome → ajakan tiap `idleInviteSec`.
-- **chat.js**: kata-kata tamu + status Q-Booth → LLM dengan tool untuk persis perintah yang
-  diterima Q-Booth saat itu. Tool: `start_session` → `session/start`, `choose_template` →
+- **chat.js**: kata-kata tamu + status aplikasi booth → LLM dengan tool untuk persis perintah
+  yang diterima aplikasi booth saat itu. Tool: `start_session` → `session/start`, `choose_template` →
   `template/select`, `take_photo` → `camera/capture`, `retake_photo` → `camera/retake`,
   `process_photo` → `camera/process`, `print_photo` → `result/print`, `show_qr` → `result/qr`,
   `start_over` / `finish_session` → `session/end`.
@@ -308,14 +321,14 @@ bisa dibaca Windows).
   kata-kata di layar saat ini (edit distance), `START_OVER` ("mulai lagi", "let's start over").
   **Tidak ada lompat layar**: template hanya dipilih di template picker; menyebut nama template
   di Welcome justru memulai sesi. Pertanyaan dan kalimat negatif ("bisa cetak?", "jangan foto
-  dulu") bukan perintah. Angka menghitung kartu Q-Booth sesuai urutannya di layar.
+  dulu") bukan perintah. Angka menghitung kartu aplikasi booth sesuai urutannya di layar.
 - **Intent picker**: kalimat yang terlewat oleh regex masuk ke klasifikasi JSON-schema kecil di
   slot kedua LLM (`id_slot` 1); ia tidak pernah memilih cetak atau selesai sendiri.
 - **Perintah yang dirutekan dijawab dengan kalimat tetap** (`ACK`), tanpa menunggu LLM
   (0,01 detik).
 - **Harga**: model kecil suka mengarang harga, jadi pertanyaan harga mendapat jawaban tetap
   (`PRICE`).
-- **System prompt**: nama, persona, gaya bicara, bahasa, alur Q-Booth, info acara (satu-satunya
+- **System prompt**: nama, persona, gaya bicara, bahasa, nama dan alur aplikasi booth, info acara (satu-satunya
   fakta yang boleh ia berikan), aturan (kalimat lisan pendek, jangan pernah mengaku melakukan
   aksi yang tidak dilakukan, jangan pernah menyebut model atau software). Isinya tetap sama
   sepanjang percakapan (prompt cache); status booth ikut di tiap pesan pengguna.
@@ -381,9 +394,10 @@ Rata-rata terukur dengan model 0.8B: 10 / 20 / 35 kata.
   menjelaskan cara memasangnya (Windows Settings → Time & language → Language & region → tambah
   bahasanya → Text-to-speech). Gemini Live memakai Puck (pria) / Kore (wanita) kalau suara yang
   dipilih bergender lain.
-- **Pelafalan** (`pronounce.js`, sebelum sintesis): id `Q-Booth` → Kyubuth, `QR` → kyu ar,
+- **Pelafalan** (`pronounce.js`, sebelum sintesis): id `QR` → kyu ar,
   `QRIS` → kris, photobooth → fotobut, template → templet, scan → sken, upload → aplod, online
-  → onlen; zh `Q-Booth` → 丘布斯, QR → 二维码, QRIS → 克里斯; ditambah daftar milik owner sendiri
+  → onlen; zh QR → 二维码, QRIS → 克里斯; kalau brand-nya Q-Booth juga id `Q-Booth` → Kyubuth,
+  zh `Q-Booth` → 丘布斯; ditambah daftar milik owner sendiri
   (`pronunciations`, "tulisan = cara membacanya" per baris). Dicek dengan mengucapkannya pakai
   Piper lalu mendengarkannya kembali dengan whisper.
 - Lip sync dari audio yang diputar (kekerasan suara + spektrum → VRM `aa ih ou ee oh`).
@@ -402,11 +416,13 @@ Rata-rata terukur dengan model 0.8B: 10 / 20 / 35 kata.
 
 ### 5.12 Pengaturan (`settings.js`, `public/settings.js`)
 
-- Tab: **Q-Booth, Asisten, Otak AI, Tampilan, Mikrofon, Keamanan**; menu samping di layar
+- Tab: **nama aplikasi booth (mis. "XBooth"), Asisten, Otak AI, Tampilan, Mikrofon, Keamanan**; menu samping di layar
   landscape, deretan tab di layar portrait; tiap tab muat tanpa scroll.
 - Tabel field (`FIELDS`) menentukan tipe tiap key dan apakah perlu restart. Hanya field yang
   berubah yang dikirim; rahasia bersifat write-only (kosong = tetap).
 - **PIN pengaturan** opsional (header `x-settings-pin` di setiap perubahan).
+- Tab booth juga berisi **Nama brand** (`brandName`): nama yang ditampilkan dan diucapkan;
+  kosong = nama yang dilaporkan aplikasi booth.
 - Tes bawaan: hubungkan Local API, "Tes otak AI", meter level mic.
 - Semua label dalam id / en / zh; error server datang sebagai kode yang diterjemahkan di halaman.
 
@@ -428,8 +444,9 @@ Rata-rata terukur dengan model 0.8B: 10 / 20 / 35 kata.
 | Key | Default | Arti |
 |---|---|---|
 | `port` | 3920 | server halaman (speech-to-text 3921, LLM 3922) |
-| `mock` | false | Q-Booth palsu bawaan |
-| `qbooth.host / port / password` | 127.0.0.1 / 8730 / "" | Q-Booth Local API |
+| `mock / mockBrand` | false / (tidak diisi) | aplikasi booth palsu bawaan; nama yang dilaporkannya (tidak diisi = QBooth) |
+| `qbooth.host / port / password` | 127.0.0.1 / 8730 / "" | Local API aplikasi booth |
+| `brandName` | "" | nama aplikasi booth yang ditampilkan dan diucapkan ("" = yang dilaporkannya) |
 | `qbooth.eventId / autoStart` | "" / false | event yang dijalankan dari pengaturan; jalankan saat start |
 | `language / askLanguage` | en / true | `id`, `en`, `zh`; layar pilihan saat app dibuka |
 | `assistantName / persona / talk / eventInfo` | Luma / ceria / normal / "" | siapa dia, cara bicaranya, seberapa banyak, apa yang boleh diceritakan |
@@ -482,7 +499,7 @@ ditampilkan lagi (field-nya bertuliskan "tersimpan (kosongkan = tetap)").
 4. Disarankan: di halaman API Keys, di sebelah label **Unrestricted** milik key itu, klik **Add
    restrictions → Restrict to Gemini API only → Restrict key**. Google menolak atau memblokir
    key tanpa batasan dalam beberapa kasus, dan key yang dibatasi lebih aman kalau bocor.
-5. Di QBooth Avatar: **Pengaturan → Otak AI → Dijalankan oleh: Gemini (cloud, Google)**, tempel
+5. Di Avatar: **Pengaturan → Otak AI → Dijalankan oleh: Gemini (cloud, Google)**, tempel
    key di **API key**, biarkan model `gemini-3.5-flash` (atau nama model Gemini lain), biarkan
    **"Pakai AI lokal kalau cloud gagal"** menyala, tekan **Tes otak AI**, lalu **Simpan**.
 6. Untuk **Gemini Live**: pilih **Dijalankan oleh: Gemini Live (suara realtime, cloud)**; field
@@ -517,7 +534,7 @@ Anthropic, Meta, …). Ada dua cara memasukkan key ke app:
 **A. "Login dengan OpenRouter" (paling mudah, di dalam app)**
 1. Pengaturan → Otak AI → Dijalankan oleh: **OpenRouter (cloud)** → **Login dengan OpenRouter**.
 2. Browser membuka halaman sign-in OpenRouter; login (atau buat akun) dan setujui
-   "QBooth Avatar". Key yang dibuat OpenRouter dengan cara ini diberi label "QBooth Avatar" di
+   "Avatar". Key yang dibuat OpenRouter dengan cara ini diberi label "Avatar" di
    daftar Keys-mu.
 3. App menerima key-nya sendiri (OAuth PKCE lewat callback lokal sekali pakai) dan menampilkan
    "✓ Terhubung, key tersimpan". Tekan **Tes otak AI**, lalu **Simpan**.
@@ -525,7 +542,7 @@ Anthropic, Meta, …). Ada dua cara memasukkan key ke app:
 **B. Membuat key secara manual**
 1. Login di **https://openrouter.ai** dan buka **https://openrouter.ai/settings/keys**
    (Keys).
-2. Klik **Create Key**, beri nama (mis. "QBooth Avatar – booth 1") dan **pasang batas kredit**
+2. Klik **Create Key**, beri nama (mis. "Avatar – booth 1") dan **pasang batas kredit**
    (OpenRouter menyarankan batas di setiap key: kalau tidak, key yang bocor bisa menghabiskan
    seluruh saldo).
 3. Salin key-nya (diawali `sk-or-v1-`; hanya ditampilkan sekali).
@@ -542,11 +559,11 @@ setelah membeli minimal 10 kredit): terlalu sedikit untuk sebuah acara.
 Kalau key bocor: hapus di https://openrouter.ai/settings/keys dan buat yang baru. OpenRouter
 juga memindai GitHub untuk key yang terekspos dan mengirim e-mail ke pemiliknya.
 
-### 7.3 Password Q-Booth Local API
+### 7.3 Password Local API aplikasi booth
 
-Bukan key cloud, tapi diatur dengan cara yang sama: Q-Booth → Settings → Advanced → **Local API**
-(mode Expert) → nyalakan, catat port dan password-nya → Pengaturan QBooth Avatar → Q-Booth →
-alamat (127.0.0.1 di PC yang sama), port, password → **Hubungkan**.
+Bukan key cloud, tapi diatur dengan cara yang sama: aplikasi booth → Settings → Advanced →
+**Local API** (mode Expert) → nyalakan, catat port dan password-nya → Pengaturan Avatar → tab
+booth → alamat (127.0.0.1 di PC yang sama), port, password → **Hubungkan**.
 
 ### 7.4 Aturan untuk key
 
@@ -562,12 +579,12 @@ alamat (127.0.0.1 di PC yang sama), port, password → **Hubungkan**.
 1. **Jangan pernah percaya model kecil untuk bertindak**: rutekan perintah yang jelas di kode,
    beri setiap hasil tool petunjuk `next`, larang mengaku melakukan aksi di prompt, jawab harga
    dengan kalimat tetap.
-2. **Tidak ada lompat layar**: perintah hanya untuk layar yang ditampilkan Q-Booth (`available`).
+2. **Tidak ada lompat layar**: perintah hanya untuk layar yang ditampilkan aplikasi booth (`available`).
 3. **Latensi**: awalan prompt yang konstan + warm-up cache, dua slot llama, kalimat tetap yang
    sudah disuarakan lebih dulu, prefetch suara per kalimat, whisper tanpa temperature fallback.
 4. **Jendela overlay**: `setShape` untuk click-through, `setBounds` setelah ditampilkan (work
    area mengecil), tegaskan ulang always-on-top, `showInactive` (jangan pernah mencuri fokus
-   Q-Booth), shortcut global.
+   aplikasi booth), shortcut global.
 5. **VRM 0.x butuh rotasi tulang yang dicerminkan.**
 6. **Pendengaran**: filter yang sadar Unicode, filter gema hanya untuk frasa panjang, kosakata
    layar.
@@ -589,7 +606,7 @@ alamat (127.0.0.1 di PC yang sama), port, password → **Hubungkan**.
 3. Kendalikan: `fetch('/qb/session/start', {method:'POST'})`, `/qb/status`, `window.assistant`,
    `window.__qba.settings()`; screenshot dengan `Page.captureScreenshot`
    (`Emulation.setDefaultBackgroundColorOverride` transparan untuk ditumpuk di atas layar
-   Q-Booth).
+   aplikasi booth).
 4. Tes intent: script unit `routeIntent` dengan kalimat yang belum pernah dilihat di tiap bahasa.
 5. Hentikan server dan server AI setelahnya dan pastikan port-nya kosong.
 
@@ -604,7 +621,7 @@ bicara, isyarat berpikir, tab pengaturan, tombol bahasa + PIN, atur posisi, edit
 gender suara, unduhan start pertama (dari kosong, resume, "sudah punya"), paket portable.
 
 Belum selesai:
-- Overlay Electron yang asli di atas event Q-Booth yang berjalan, mikrofon asli dan dialog file
+- Overlay Electron yang asli di atas event aplikasi booth yang berjalan, mikrofon asli dan dialog file
   "sudah punya" belum dites owner di PC booth.
 - Suara pria Indonesia / Mandarin butuh language pack Windows (tidak terpasang di laptop uji:
   suara wanita yang bicara sebagai gantinya).

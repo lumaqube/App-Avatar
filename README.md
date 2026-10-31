@@ -1,18 +1,25 @@
 # Avatar (overlay)
 
-A virtual assistant that stands **on top of the running QBooth event screen**: a 3D
+A virtual assistant that stands **on top of the booth app's running event screen**: a 3D
 character in a corner, nothing else. It greets guests, talks with them by voice, guides
-them through QBooth's own screens (start, template picker, camera, review, result) and
-presses QBooth's buttons for them when asked ("ayo foto", "yang kedua", "foto", "ulang",
-"proses", "cetak", "QR"). Everything goes through the QBooth **Local API**.
+them through the booth app's own screens (start, template picker, camera, review, result) and
+presses the booth app's buttons for them when asked ("ayo foto", "yang kedua", "foto", "ulang",
+"proses", "cetak", "QR"). Everything goes through the booth app's **Local API**.
 
-It has no camera, live view or screens of its own: QBooth does all the showing; the
+Works with QBooth.exe, BleepShare.exe and XBooth.exe; the name shown comes from the connected
+app (see [Brands](#brands)).
+
+It has no camera, live view or screens of its own: the booth app does all the showing; the
 assistant only talks and presses.
+
+Docs (en / id / zh): the recipe, how it is built and run ([docs/Avatar_EN.md](docs/Avatar_EN.md),
+[docs/Avatar_ID.md](docs/Avatar_ID.md), [docs/Avatar_ZH.md](docs/Avatar_ZH.md)), and the user guide
+(`docs/Avatar_EN.docx`, `Avatar_ID.docx`, `Avatar_ZH.docx`).
 
 ## Run
 
 - Desktop app (the normal way): `npm run app` (`npm run app:mock` = with the built-in fake
-  QBooth; both clear `ELECTRON_RUN_AS_NODE`, which some shells set). Packaged:
+  booth app; both clear `ELECTRON_RUN_AS_NODE`, which some shells set). Packaged:
   `dist\Avatar-win32-x64\Avatar.exe`.
 - `npm run build` packages it (`--no-asar`; models and tools are copied in, ~5 GB).
 - `node server.js [--mock]` serves the page alone on http://127.0.0.1:3920 for testing in
@@ -71,22 +78,22 @@ booth tab → Brand name) overrides the reported name.
 - The mock reports "QBooth" unless `mockBrand` (config) or the environment variable `QBA_MOCK_BRAND`
   names another (e.g. `set QBA_MOCK_BRAND=XBooth` before `node server.js --mock`).
 
-## QBooth
+## Connecting to the booth app
 
 1. The booth app: Settings → Advanced → Local API (Expert mode): on, note port and password.
 2. Hold the character 5 s (or Ctrl+Alt+Shift+S) → Settings → the booth tab: address, port,
    password → **Connect**. The **Event** list fills in (template counts, the running one
-   marked). **Run** / **Stop** start and end an event in QBooth. "Run this event when the app
-   opens" (`qbooth.autoStart`) launches it once QBooth answers, if none is running.
-3. In the QBooth event editor, the event's output monitor = the screen the character is on.
+   marked). **Run** / **Stop** start and end an event in the booth app. "Run this event when the
+   app opens" (`qbooth.autoStart`) launches it once the booth app answers, if none is running.
+3. In the booth app's event editor, the event's output monitor = the screen the character is on.
 
 ## The window
 
-- Covers the whole screen (`display`), transparent, frameless, always on top: re-asserted every 1.5 s, because QBooth raises its
-  kiosk window once when an event opens. Shown without taking the focus from QBooth.
+- Covers the whole screen (`display`), transparent, frameless, always on top: re-asserted every 1.5 s, because the booth app raises its
+  kiosk window once when an event opens. Shown without taking the focus from the booth app.
 - Cut to the character's outline (`win.setShape`; the outline comes from its bones,
   `Avatar.screenBox`, sent to `POST /app/shape` every 250 ms when it moves, 8 px steps). The
-  rest of the screen has no window at all: QBooth stays visible and touchable around it.
+  rest of the screen has no window at all: the booth app stays visible and touchable around it.
 - Nothing but the character: no subtitles, buttons or cards. The debug panel (`?debug=1`,
   or D with the window focused) shows what was heard / said.
 - **Thinking**: from the guest's last word until the first sentence of the answer, the character
@@ -102,7 +109,7 @@ booth tab → Brand name) overrides the reported name.
 |---|---|
 | Tap the character | Talk (the mic button). Hands-free listening (`listenMode` auto / wake) works too |
 | Hold the character 5 s | Settings (PIN if set) |
-| Ctrl+Alt+Shift+S | Settings, from anywhere (global shortcut: QBooth usually has the focus) |
+| Ctrl+Alt+Shift+S | Settings, from anywhere (global shortcut: the booth app usually has the focus) |
 | Language button (globe) | Bahasa Indonesia / English / 中文. Asks the settings PIN when one is set (`overlay.langPin`, on by default; off = guests may switch) |
 | Menu button (☰) | Settings (PIN if set). Both buttons can be switched off (`overlay.menuButton`, `overlay.langButton`) |
 | Ctrl+Alt+Shift+P | Placing ([public/layout.js](public/layout.js)): drag the character and each button on its own, − / + for the character, Reset, Done (saved as `overlay.layout`, screen fractions) |
@@ -114,15 +121,15 @@ Until it is first placed: `overlay.side` (right / left bottom corner) and `overl
 
 ## How it guides
 
-- [public/brain.js](public/brain.js): each new QBooth page / camera phase → a fixed line
+- [public/brain.js](public/brain.js): each new booth app page / camera phase → a fixed line
   ([public/lines.js](public/lines.js)) with a gesture. Idle on Welcome → an invitation.
-- [chat.js](chat.js): the guest's words + QBooth's status → LLM (local llama.cpp, Gemini or
-  OpenRouter) with tools for exactly the commands QBooth accepts now (`status.available`).
+- [chat.js](chat.js): the guest's words + the booth app's status → LLM (local llama.cpp, Gemini or
+  OpenRouter) with tools for exactly the commands the booth app accepts now (`status.available`).
   Clear commands are routed in code (`routeIntent`): "ayo foto" → `session/start`, a
   template's name or number → `template/select`, "foto" → `camera/capture`, …
-  Numbers count QBooth's cards in their on-screen order (`inScreenOrder`, from the picker's `index`).
+  Numbers count the booth app's cards in their on-screen order (`inScreenOrder`, from the picker's `index`).
 - [live.js](live.js): Gemini Live (voice in, voice out), same tools.
-- The LLM is told it stands on top of QBooth's screen and guides the guest through it.
+- The LLM is told it stands on top of the booth app's screen and guides the guest through it.
 
 ## Speed
 
@@ -182,7 +189,7 @@ The voice is part of the cache key (`cache/tts`), and pre-rendered clips are onl
 
 [pronounce.js](pronounce.js) rewrites words the voice says wrong before they are spoken (the voice
 only). Checked by speaking each spelling with Piper and hearing it back with whisper: "Q-Booth"
-was heard as "keyboard", "QR" as "kier". Built in: Indonesian Q-Booth → Kyubuth (the Q-Booth ones only when the booth is Q-Booth), QR → kyu ar,
+was heard as "keyboard", "QR" as "kier". Built in: Indonesian Q-Booth → Kyubuth (the Q-Booth ones only when the brand is Q-Booth), QR → kyu ar,
 QRIS → kris, photobooth → fotobut, template(nya) → templet(nya), (di)scan → (di)sken,
 (di)upload → (di)aplod, online → onlen; Mandarin Q-Booth → 丘布斯, QR(码) → 二维码, QRIS → 克里斯
 (the Mandarin voice cannot say Latin letters). The owner adds more in Settings → Assistant →
@@ -207,7 +214,7 @@ language. Only the debug panel (developers) stays in English.
 | Key | Meaning |
 |---|---|
 | `port` | This app's page (3920) |
-| `qbooth.host / port / password` | QBooth Local API |
+| `qbooth.host / port / password` | The booth app's Local API |
 | `qbooth.eventId / autoStart` | The event the settings run; launch it when the app opens |
 | `brandName` | The booth app's name to show and say; empty = what the booth reports (see Brands) |
 | `overlay.side / size / layout` | Start corner, % of screen height; where the character and buttons were placed |
@@ -225,7 +232,7 @@ language. Only the debug panel (developers) stays in English.
 | `tts.*` | Voice: Piper (id, zh: `zh_CN-huayan-medium`), Windows SAPI (en), OmniVoice; pre-rendered clips in `public/voice/` first |
 | `idleInviteSec / pollMs` | Invitation interval on Welcome; status poll |
 | `settingsPin` | PIN for the settings |
-| `mock / mockBrand` | The built-in fake QBooth; the product name it reports (default "QBooth") |
+| `mock / mockBrand` | The built-in fake booth app; the product name it reports (default "QBooth") |
 
 `config.json` holds the API password and keys: keep it out of git and screenshots.
 
@@ -238,7 +245,7 @@ language. Only the debug panel (developers) stays in English.
 | `chat.js`, `live.js` | Conversation + booth tools (local / cloud LLM, Gemini Live) |
 | `services.js`, `stt.js`, `tts.js` | whisper-server, llama-server, Piper / SAPI / OmniVoice |
 | `settings.js` | Settings fields, Local API connect / run / stop, LLM test |
-| `mock-qbooth.js` | Fake QBooth Local API for tests |
+| `mock-qbooth.js` | Fake booth app Local API for tests |
 | `public/` | The page: `main.js`, `avatar.js` (VRM, gestures, outline), `voice.js`, `mic.js`, `brain.js`, `lines.js`, `settings.js`, `avatar-editor.js`, `boot.js`, `brand.js` (the booth app's name, also used by the server) |
 | `setup.js` | Downloads missing tools and models on the first start |
 | `tools/`, `models/` | llama.cpp, whisper.cpp (CPU + CUDA), Piper; Qwen 3.5 0.8B (Q8_0, 774 MB), whisper small / large-v3-turbo |

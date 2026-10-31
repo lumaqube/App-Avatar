@@ -1,16 +1,18 @@
-# QBooth Avatar：构建配方
+# Avatar：构建配方
 
-其他语言版本：QBoothAvatar_EN.md（English）、QBoothAvatar_ID.md（Bahasa Indonesia）。
+其他语言版本：Avatar_EN.md（English）、Avatar_ID.md（Bahasa Indonesia）。
 
-本文说明 QBooth Avatar 是怎么搭建的、运行在什么之上、如何获取云端 API 密钥，以及如何从零重新构建它。
+本文说明 Avatar 是怎么搭建的、运行在什么之上、如何获取云端 API 密钥，以及如何从零重新构建它。
 写法上力求让开发者或 AI 代理能够一步一步复现。应用状态：2026 年 10 月 30 日，版本 0.2（`package.json` 名称
-`qbooth-avatar-overlay`）。
+`avatar-overlay`）。
 
-QBooth Avatar 是一个 Windows 桌面应用：一个**站在 Q-Booth 正在运行的活动画面之上的 3D 角色**。它迎接客人、
-用语音和客人交谈、引导客人走完 Q-Booth 自己的各个画面（欢迎、模板选择、相机、预览、结果），并在客人要求时替他们
-按下 Q-Booth 的按钮（"ayo foto"＝来拍照吧、"yang kedua"＝第二个、"foto"＝拍照、"ulang"＝重拍、"proses"＝处理、
-"cetak"＝打印、"QR"）。所有操作都通过 **Q-Booth Local API** 完成。它没有自己的相机、实时取景或画面：一切显示都由
-Q-Booth 负责，助手只负责说话和按按钮。
+Avatar 是一个 Windows 桌面应用：一个**站在拍照亭应用正在运行的活动画面之上的 3D 角色**。它迎接客人、
+用语音和客人交谈、引导客人走完拍照亭应用自己的各个画面（欢迎、模板选择、相机、预览、结果），并在客人要求时替他们
+按下拍照亭应用的按钮（"ayo foto"＝来拍照吧、"yang kedua"＝第二个、"foto"＝拍照、"ulang"＝重拍、"proses"＝处理、
+"cetak"＝打印、"QR"）。所有操作都通过拍照亭应用的 **Local API** 完成。它没有自己的相机、实时取景或画面：一切显示
+都由拍照亭应用负责，助手只负责说话和按按钮。
+
+适用于 QBooth.exe、BleepShare.exe 和 XBooth.exe；显示的名称来自所连接的应用（见 5.5 节和 README 的 "Brands"）。
 
 一切都运行在拍照亭的电脑上。唯一可选的云端部分是 AI 大脑（Google Gemini、OpenRouter）和 Gemini Live（实时语音）。
 第 7 节说明如何获取它们的 API 密钥。
@@ -46,9 +48,9 @@ Q-Booth 负责，助手只负责说话和按按钮。
 ## 2. 整体如何协作
 
 ```
- ┌──────────── QBooth Avatar.exe (Electron) ─────────────────────────────────────────────┐
+ ┌──────────── Avatar.exe (Electron) ────────────────────────────────────────────────────┐
  │ overlay window: whole screen, transparent, frameless, always on top, cut to the       │
- │ character's outline (win.setShape) so Q-Booth stays visible and touchable around it   │
+ │ character's outline (win.setShape) so the booth app stays visible and touchable       │
  │                                                                                         │
  │  page (Chromium)                       Node server (same process)  :3920               │
  │   avatar.js  three-vrm, gestures        ├─ /speak  → tts.js  → Piper / Windows voices   │
@@ -56,12 +58,12 @@ Q-Booth 负责，助手只负责说话和按按钮。
  │   main.js    loop, tap/hold, buttons    ├─ /chat   → chat.js → llama-server   :3922     │
  │   brain.js   what to say per screen     │                      or Gemini / OpenRouter   │
  │   layout.js  placing char + buttons     ├─ /live   → live.js → Gemini Live (WSS)        │
- │   settings.js, avatar-editor.js         ├─ /qb/*   → Q-Booth Local API :8730 (password  │
+ │   settings.js, avatar-editor.js         ├─ /qb/*   → booth app Local API :8730 (password│
  │   boot.js    start-up + downloads       │            added on the server)               │
  │                                         ├─ /app/*  → window shape, layout, pick a file  │
  │                                         └─ /settings*, /avatars, /services, /config.json│
  └─────────────────────────────────────────────────────────────────────────────────────────┘
-          ▲ guest: mic in, speaker out                       Q-Booth (its own kiosk window)
+          ▲ guest: mic in, speaker out                     the booth app (its own kiosk window)
 ```
 
 - **页面**就是全部用户界面。它只和自己的服务器通信（`http://127.0.0.1:3920`）；机密信息（API 密钥、Local API
@@ -75,7 +77,7 @@ Q-Booth 负责，助手只负责说话和按按钮。
 ## 3. 目录结构
 
 ```
-QBoothAvatar/
+QBoothAvatar/           工作文件夹（源码的 git 仓库：App-Avatar）
   package.json            dependencies, scripts (start, mock, app, app:mock, build)
   config.example.json     every setting with its default (read first)
   config.json             the owner's overrides only (not in git; next to the exe when packaged)
@@ -84,13 +86,13 @@ QBoothAvatar/
   setup.js                first start from source: downloads missing tools and models
   services.js             starts whisper-server and llama-server, GPU detection, health
   tts.js                  text to speech: clips → cache → Piper / Windows voices / OmniVoice
-  pronounce.js            pronunciation lexicon (Q-Booth → Kyubuth, QR → kyu ar, …)
+  pronounce.js            pronunciation lexicon (QR → kyu ar, Q-Booth → Kyubuth, …)
   stt.js                  speech to text: vocabulary prompt per screen, hallucination filter
   chat.js                 conversation: system prompt, tools, intent router, talk levels, LLMs
   persona.js              5 personalities (style text + voice speed)
   live.js                 Gemini Live proxy (/live): setup, voices, tools
   settings.js             editable fields, read/save, Local API connect/run/stop, LLM test
-  mock-qbooth.js          a fake Q-Booth Local API for testing (port 8739)
+  mock-qbooth.js          a fake booth app Local API for testing (port 8739)
   openrouter-login.js     "Log in with OpenRouter" (OAuth PKCE), saves the key
   avatar-info.js          reads a VRM's name/author/licence/thumbnail
   listen.js               listen with retry (a closing old copy may still hold the port)
@@ -103,11 +105,12 @@ QBoothAvatar/
     avatar-editor.js      colours, glasses, model gallery, voice gender
     voice.js              audio playback, lip sync, per-sentence prefetch, Live PCM
     mic.js                microphone, voice detection, WAV encoding, sensitivity
-    brain.js              what to say when Q-Booth's screen changes
+    brain.js              what to say when the booth app's screen changes
     lines.js              every fixed spoken line and UI label: id / en / zh
     boot.js               start-up screen (downloads, steps, progress)
     settings.js           settings screen in tabs (id / en / zh labels)
     live.js, qbooth.js    Gemini Live client; Local API client (through /qb/*)
+    brand.js              the booth app's name ({booth} in texts), also used by the server
     avatars/              8 VRM models + avatars.json (names, genders)
     voice/                pre-rendered clips of the fixed lines (female voice)
   tools/                  binaries, not in git (downloaded on the first start)
@@ -176,9 +179,9 @@ npm install -D electron@45 @electron/packager@20
 ### 4.4 开发时运行
 
 ```bash
-npm run app:mock          # the desktop app with the built-in fake Q-Booth
-npm run app               # the desktop app, real Q-Booth (Local API settings in config.json)
-node server.js --mock     # page + AI servers + fake Q-Booth, no overlay window
+npm run app:mock          # 桌面应用，使用内置的模拟拍照亭应用
+npm run app               # 桌面应用，连接真实的拍照亭应用（Local API 设置在 config.json 中）
+node server.js --mock     # 页面 + AI 服务器 + 模拟拍照亭应用，没有叠加窗口
 # open http://127.0.0.1:3920/?autostart=1&debug=1 in Chrome or Edge
 ```
 
@@ -189,7 +192,7 @@ node server.js --mock     # page + AI servers + fake Q-Booth, no overlay window
 
 ```bash
 npm run build
-# → dist/QBooth Avatar-win32-x64/QBooth Avatar.exe  (~3.4 GB with tools + models)
+# → dist/Avatar-win32-x64/Avatar.exe  （含 tools + models 约 3.4 GB）
 ```
 
 构建时排除 `dist`、`cache`、`logs` 和 `config.json`。由于使用 `--no-asar`，代码修复可以
@@ -203,13 +206,13 @@ npm run build
 ### 5.1 叠加窗口（`electron/main.js`）
 
 - **覆盖整个显示器**（`display`），透明、无边框，`alwaysOnTop` 级别为 `screen-saver`，每 1.5 秒重新置顶一次
-  （Q-Booth 打开活动时会把自己的 kiosk 窗口提到前面）。用 `showInactive()` 显示：键盘焦点留在 Q-Booth。
+  （拍照亭应用打开活动时会把自己的 kiosk 窗口提到前面）。用 `showInactive()` 显示：键盘焦点留在拍照亭应用。
 - **显示后以及在 1.5 秒循环中执行 `setBounds(display.bounds)`**：否则 Windows 会把无边框窗口缩小到工作区
   （1032 px 而不是 1080，位于任务栏之上）。
 - **裁剪为可见部分**（`win.setShape(rects)`）：当有东西移动时（以 8 px 为步长），页面每 250 ms 向 `POST /app/shape`
   发送矩形：由骨骼算出的角色框（`Avatar.screenBox`）、思考气泡、两个按钮、语言列表、启动框。屏幕其余部分根本
   没有窗口。当设置、语言画面、形象编辑器或摆放模式打开时，形状为整个屏幕。
-- **全局快捷键**（焦点在 Q-Booth，页面按键收不到）：Ctrl+Alt+Shift+S 设置，Ctrl+Alt+Shift+P 摆放，
+- **全局快捷键**（焦点在拍照亭应用，页面按键收不到）：Ctrl+Alt+Shift+S 设置，Ctrl+Alt+Shift+P 摆放，
   Ctrl+Alt+Shift+Q 退出。
 - **同时只运行一个实例**（`requestSingleInstanceLock`）；启动顺序：服务器 → 窗口 → 首次绘制后（或 10 秒后）启动
   AI 服务器。
@@ -246,32 +249,38 @@ npm run build
 | `GET /speak?lang=&text=` | 文本的 WAV（预录片段 / 缓存 / 引擎） |
 | `POST /listen?lang=` | 输入 WAV → `{ text, ms }`（词汇提示来自当前画面） |
 | `POST /chat` | `{ text, lang }` → NDJSON 流：要说的句子、动作、计时 |
-| `/qb/*` | 代理到 Q-Booth Local API `/api/v1/*`（Bearer 密码在服务器端添加） |
+| `/qb/*` | 代理到拍照亭应用的 Local API `/api/v1/*`（Bearer 密码在服务器端添加） |
 | `POST /app/shape`、`/app/layout`、`/app/pick-part` | 窗口形状、布局、“已有这个文件”的文件 |
 | `GET/POST /settings`、`/settings/unlock`、`/settings/test`、`/settings/booth`、`/settings/test-llm`、`/settings/openrouter-login`、`/settings/language`、`/settings/quit` | 设置（PIN 头）、Local API 连接 / 运行 / 停止、LLM 测试、OpenRouter 登录、语言（无需 PIN）、退出 |
 | `GET/POST /avatars`、`/avatar-thumb` | VRM 列表和上传、缩略图 |
 | WebSocket `/live` | Gemini Live 代理（密钥留在服务器上） |
 
-### 5.5 Q-Booth Local API
+### 5.5 拍照亭应用的 Local API
 
-- Q-Booth：Settings → Advanced → **Local API**（Expert 模式）：打开；它在一个端口（默认 8730）上监听，并设有密码。
+- 拍照亭应用有三个品牌版本，Local API 相同：QBooth.exe（报告 "QBooth"，写作 "Q-Booth"）、BleepShare.exe
+  （"BleepShareAI"）和 XBooth.exe（"XBooth"）。显示和说出的名称来自 `status.app.name`（`public/brand.js`），或
+  **品牌名称** 设置（`brandName`），在从未连接之前则用中性词（"拍照亭应用" / "the booth app" / "aplikasi booth"）。
+  设置的第一个标签页使用这个名称（例如 "XBooth"；连接之前为 "拍照亭"）。模拟器报告 "QBooth"，除非 `mockBrand` 或
+  `QBA_MOCK_BRAND` 指定了别的名称。
+- 在拍照亭应用中：Settings → Advanced → **Local API**（Expert 模式）：打开；它在一个端口（默认 8730）上监听，并设有
+  密码。
 - 调用：`GET /api/v1/status`、`GET /api/v1/events`、`GET /api/v1/templates`、
   `POST /api/v1/<command>`，带 `Authorization: Bearer <password>`。
 - status 返回当前页面（`welcome`、`templatePicker`、`camera`、`result`…）、会话、相机阶段（`liveIdle`、`counting`、
   `capturing`、`review`）、忙碌标志以及 `available` 命令。应用只提供 `available` 中存在的工具。
-- 设置 → Q-Booth：地址、端口、密码 → **连接** 会填充 **活动** 列表（显示模板数量，正在运行的会被标出）；
-  **运行** / **停止** 开始和结束一个活动；“应用启动时运行此活动”（`qbooth.autoStart`）会在 Q-Booth 响应后启动它
+- 设置 → 拍照亭标签页（以品牌命名）：地址、端口、密码 → **连接** 会填充 **活动** 列表（显示模板数量，正在运行的会被标出）；
+  **运行** / **停止** 开始和结束一个活动；“应用启动时运行此活动”（`qbooth.autoStart`）会在拍照亭应用响应后启动它
   一次（前提是当前没有活动在运行）。错误以代码形式返回（`offline`、`unauthorized`、`too_many_attempts`、
   `event_running`、`editor_open`、`dialog_open`…），并以界面语言显示。
-- 在 Q-Booth 的活动编辑器中，活动的输出显示器 = 角色所在的屏幕。
-- `mock-qbooth.js` 在 8739 端口实现同样的 API（`--mock` 或 设置 → 连接 → Mock（不连 QBooth 测试））。
+- 在拍照亭应用的活动编辑器中，活动的输出显示器 = 角色所在的屏幕。
+- `mock-qbooth.js` 在 8739 端口实现同样的 API（`--mock` 或 设置 → 连接 → Mock（不连拍照亭应用测试））。
   “连接”始终测试真实的地址字段。
 
 ### 5.6 如何引导（`public/brain.js`、`lines.js`、`chat.js`）
 
-- **brain.js**：页面每 400 ms 轮询一次 `/qb/status`；Q-Booth 每出现一个新页面或相机阶段，就给出一句固定台词并配上
+- **brain.js**：页面每 400 ms 轮询一次 `/qb/status`；拍照亭应用每出现一个新页面或相机阶段，就给出一句固定台词并配上
   手势（欢迎、模板选择、准备、倒计时、预览、处理中、结果）。在欢迎页闲置 → 每隔 `idleInviteSec` 发出一次邀请。
-- **chat.js**：客人的话 + Q-Booth 的状态 → 交给 LLM，并只提供 Q-Booth 此刻接受的命令作为工具。工具：
+- **chat.js**：客人的话 + 拍照亭应用的状态 → 交给 LLM，并只提供拍照亭应用此刻接受的命令作为工具。工具：
   `start_session` → `session/start`，`choose_template` → `template/select`，`take_photo` → `camera/capture`，
   `retake_photo` → `camera/retake`，`process_photo` → `camera/process`，`print_photo` → `result/print`，
   `show_qr` → `result/qr`，`start_over` / `finish_session` → `session/end`。
@@ -279,12 +288,12 @@ npm run build
   类词语（"lanjut"、"proses"、"ayo"、"mulai"，即继续、处理、来吧、开始），与当前画面词语的模糊匹配（编辑距离），
   `START_OVER`（"mulai lagi"＝重新开始、"let's start over"）。**不跳画面**：只有在模板选择页才会选模板；在欢迎页
   说出模板名会改为开始会话。疑问和否定（"bisa cetak?"＝能打印吗？、"jangan foto dulu"＝先别拍）不算命令。数字按
-  Q-Booth 卡片在屏幕上的顺序计数。
+  拍照亭应用的卡片在屏幕上的顺序计数。
 - **意图选择器**：正则漏掉的说法交给 LLM 第二个槽位（`id_slot` 1）上的一个小型 JSON-schema 分类；它绝不会自行选择
   打印或结束。
 - **已路由的命令用固定台词回应**（`ACK`），无需等待 LLM（0.01 秒）。
 - **价格**：小模型会编造价格，所以价格问题用固定答案回应（`PRICE`）。
-- **系统提示词**：名字、性格、说话风格、语言、Q-Booth 的流程、活动信息（唯一允许提供的事实）、规则（简短的口语句子，
+- **系统提示词**：名字、性格、说话风格、语言、拍照亭应用的名称和流程、活动信息（唯一允许提供的事实）、规则（简短的口语句子，
   绝不声称做了没做的动作，绝不说出模型或软件的名称）。它在整个对话中保持不变（提示词缓存）；拍照亭状态附在每条
   用户消息上。
 
@@ -339,10 +348,10 @@ npm run build
 
   未安装（缺少 Windows 语言包）→ 改用另一性别的声音，设置中会说明如何安装（Windows 设置 → 时间和语言 → 语言和区域
   → 添加该语言 → 文本转语音）。当 Gemini Live 所选声音的性别不符时，它会改用 Puck（男声）/ Kore（女声）。
-- **发音**（`pronounce.js`，在合成之前）：id `Q-Booth` → Kyubuth，`QR` → kyu ar，`QRIS` → kris，photobooth →
-  fotobut，template → templet，scan → sken，upload → aplod，online → onlen；zh `Q-Booth` → 丘布斯，QR → 二维码，
-  QRIS → 克里斯；另加主人自己的列表（`pronunciations`，每行“写法 = 读法”）。通过用 Piper 朗读、再用 whisper
-  听写回来进行检查。
+- **发音**（`pronounce.js`，在合成之前）：id `QR` → kyu ar，`QRIS` → kris，photobooth → fotobut，
+  template → templet，scan → sken，upload → aplod，online → onlen；zh QR → 二维码，QRIS → 克里斯；品牌为 Q-Booth
+  时还有 id `Q-Booth` → Kyubuth、zh `Q-Booth` → 丘布斯；另加主人自己的列表（`pronunciations`，每行
+  “写法 = 读法”）。通过用 Piper 朗读、再用 whisper 听写回来进行检查。
 - 根据正在播放的音频做口型同步（响度 + 频谱 → VRM `aa ih ou ee oh`）。
 
 ### 5.11 形象（`public/avatar.js`、`avatar-editor.js`）
@@ -357,10 +366,11 @@ npm run build
 
 ### 5.12 设置（`settings.js`、`public/settings.js`）
 
-- 标签页：**Q-Booth、助手、AI 大脑、外观、麦克风、安全**；横屏时为侧边菜单，竖屏时为一排标签；每个标签页都无需
+- 标签页：**拍照亭应用的名称（例如 "XBooth"）、助手、AI 大脑、外观、麦克风、安全**；横屏时为侧边菜单，竖屏时为一排标签；每个标签页都无需
   滚动即可完整显示。
 - 一个字段表（`FIELDS`）定义每个键的类型以及是否需要重启。只发送改动过的字段；机密信息只写不读（留空 = 保持不变）。
 - 可选的**设置 PIN 码**（每次更改都带 `x-settings-pin` 头）。
+- 拍照亭标签页中还有 **品牌名称**（`brandName`）：要显示和说出的名称；留空 = 使用拍照亭应用报告的名称。
 - 内置测试：Local API 连接、“测试 AI 大脑”、麦克风电平表。
 - 所有标签都有 id / en / zh 三种语言；服务器错误以代码返回，在页面中翻译。
 
@@ -380,8 +390,9 @@ npm run build
 | 键 | 默认值 | 含义 |
 |---|---|---|
 | `port` | 3920 | 页面服务器（语音转文本 3921，LLM 3922） |
-| `mock` | false | 内置的模拟 Q-Booth |
-| `qbooth.host / port / password` | 127.0.0.1 / 8730 / "" | Q-Booth Local API |
+| `mock / mockBrand` | false / （未设置） | 内置的模拟拍照亭应用；它报告的名称（未设置 = QBooth） |
+| `qbooth.host / port / password` | 127.0.0.1 / 8730 / "" | 拍照亭应用的 Local API |
+| `brandName` | "" | 要显示和说出的拍照亭应用名称（"" = 它报告的名称） |
 | `qbooth.eventId / autoStart` | "" / false | 设置中运行的活动；启动时自动运行它 |
 | `language / askLanguage` | en / true | `id`、`en`、`zh`；启动时的语言选择画面 |
 | `assistantName / persona / talk / eventInfo` | Luma / ceria / normal / "" | 它是谁、怎么说话、说多少、可以讲什么 |
@@ -429,7 +440,7 @@ npm run build
 4. 建议：在 API Keys 页面上，在密钥的 **Unrestricted**（无限制）标签旁，点击 **Add restrictions → Restrict to
    Gemini API only → Restrict key**（添加限制 → 仅限 Gemini API → 限制密钥）。Google 在某些情况下会拒绝或封锁
    无限制的密钥，而且受限的密钥即使泄露也更安全。
-5. 在 QBooth Avatar 中：**设置 → AI 大脑 → 运行在：Gemini（云端，Google）**，把密钥粘贴到 **API 密钥** 中，保留模型
+5. 在 Avatar 中：**设置 → AI 大脑 → 运行在：Gemini（云端，Google）**，把密钥粘贴到 **API 密钥** 中，保留模型
    `gemini-3.5-flash`（或其他 Gemini 模型名），保持 **“云端失败时使用本地 AI”** 开启，按 **测试 AI 大脑**，然后
    **保存**。
 6. 使用 **Gemini Live**：选择 **运行在：Gemini Live（实时语音，云端）**；使用同一个密钥字段。选择一个声音；除非客人
@@ -456,14 +467,14 @@ OpenRouter 用一个账号、一个密钥就能使用来自多家提供商（Goo
 
 **A. “用 OpenRouter 登录”（最简单，在应用内完成）**
 1. 设置 → AI 大脑 → 运行在：**OpenRouter（云端）** → **用 OpenRouter 登录**。
-2. 浏览器打开 OpenRouter 的登录页面；登录（或创建账号）并批准 "QBooth Avatar"。用这种方式生成的密钥在你的 Keys
-   列表中标记为 "QBooth Avatar"。
+2. 浏览器打开 OpenRouter 的登录页面；登录（或创建账号）并批准 "Avatar"。用这种方式生成的密钥在你的 Keys
+   列表中标记为 "Avatar"。
 3. 应用自行接收密钥（在一次性本地回调上使用 OAuth PKCE），并显示“✓ 已连接，密钥已保存”。按 **测试 AI 大脑**，然后
    **保存**。
 
 **B. 手动创建密钥**
 1. 在 **https://openrouter.ai** 登录并打开 **https://openrouter.ai/settings/keys**（Keys）。
-2. 点击 **Create Key**（创建密钥），起个名字（例如 "QBooth Avatar – booth 1"），并**设置 credit 上限**（OpenRouter
+2. 点击 **Create Key**（创建密钥），起个名字（例如 "Avatar – booth 1"），并**设置 credit 上限**（OpenRouter
    建议每个密钥都设上限：否则泄露的密钥可能花光全部余额）。
 3. 复制密钥（以 `sk-or-v1-` 开头；只显示一次）。
 4. 把它粘贴到 设置 → AI 大脑 → **API 密钥**，设置 **模型**（默认 `google/gemini-2.5-flash`；
@@ -477,10 +488,10 @@ OpenRouter 用一个账号、一个密钥就能使用来自多家提供商（Goo
 如果密钥泄露：在 https://openrouter.ai/settings/keys 删除它并创建一个新的。OpenRouter 也会扫描 GitHub 上暴露的
 密钥，并发邮件通知所有者。
 
-### 7.3 Q-Booth Local API 密码
+### 7.3 拍照亭应用的 Local API 密码
 
-它不是云端密钥，但设置方式相同：Q-Booth → Settings → Advanced → **Local API**（Expert 模式）→ 打开，记下端口和
-密码 → QBooth Avatar 设置 → Q-Booth → 地址（同一台电脑上为 127.0.0.1）、端口、密码 → **连接**。
+它不是云端密钥，但设置方式相同：拍照亭应用 → Settings → Advanced → **Local API**（Expert 模式）→ 打开，记下端口和
+密码 → Avatar 设置 → 拍照亭标签页 → 地址（同一台电脑上为 127.0.0.1）、端口、密码 → **连接**。
 
 ### 7.4 密钥规则
 
@@ -495,11 +506,11 @@ OpenRouter 用一个账号、一个密钥就能使用来自多家提供商（Goo
 
 1. **绝不信任小模型去执行动作**：明确的命令在代码中路由，给每个工具结果一个 `next` 提示，在提示词中禁止声称做了
    动作，用固定台词回答价格。
-2. **不跳画面**：只对 Q-Booth 当前显示的画面发出命令（`available`）。
+2. **不跳画面**：只对拍照亭应用当前显示的画面发出命令（`available`）。
 3. **延迟**：固定的提示词前缀 + 缓存预热、两个 llama 槽位、固定台词预先合成语音、逐句语音预取、whisper 不做温度
    回退。
 4. **叠加窗口**：用 `setShape` 实现点击穿透，显示后执行 `setBounds`（工作区缩小问题），反复重新置顶，
-   `showInactive`（绝不抢 Q-Booth 的焦点），全局快捷键。
+   `showInactive`（绝不抢拍照亭应用的焦点），全局快捷键。
 5. **VRM 0.x 需要镜像骨骼旋转。**
 6. **听觉**：支持 Unicode 的过滤器，回声过滤只针对长句，画面词汇。
 7. **Kiosk 稳健性**：单实例、端口重试、按路径结束残留的 AI 服务器（`Get-Process`；在测试笔记本上 WMI 要花一分钟）、
@@ -519,7 +530,7 @@ OpenRouter 用一个账号、一个密钥就能使用来自多家提供商（Goo
    `/?autostart=1&lang=id&debug=1`。
 3. 驱动它：`fetch('/qb/session/start', {method:'POST'})`、`/qb/status`、`window.assistant`、
    `window.__qba.settings()`；用 `Page.captureScreenshot` 截图（把 `Emulation.setDefaultBackgroundColorOverride`
-   设为透明，以便叠加到 Q-Booth 画面上合成）。
+   设为透明，以便叠加到拍照亭应用画面上合成）。
 4. 意图测试：用每种语言中没见过的说法编写 `routeIntent` 单元测试脚本。
 5. 结束后停止服务器和 AI 服务器，并检查端口已释放。
 
@@ -533,7 +544,7 @@ OpenRouter 用一个账号、一个密钥就能使用来自多家提供商（Goo
 PIN、摆放、形象编辑器和声音性别、首次启动下载（从空文件夹、续传、“已有这个文件”）、便携包。
 
 待解决：
-- 真实 Electron 叠加层覆盖在运行中的 Q-Booth 活动上、真实麦克风，以及“已有这个文件”的文件对话框，都还没有由主人
+- 真实 Electron 叠加层覆盖在运行中的拍照亭应用活动上、真实麦克风，以及“已有这个文件”的文件对话框，都还没有由主人
   在拍照亭电脑上测试过。
 - 印尼语 / 普通话男声需要 Windows 语言包（测试笔记本上未安装：改由女声说话）。
 - Gemini 免费层限额很小；活动时请使用已开通计费的密钥。
