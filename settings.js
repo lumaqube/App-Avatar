@@ -11,6 +11,7 @@ import path from 'node:path';
 import { configWritePath, loadOwnConfig } from './config.js';
 import { avatarInfo } from './avatar-info.js';
 import { avatarGender, voiceFor } from './tts.js';
+import { brandName } from './public/brand.js';
 
 // Keys the screen edits. "restart" = only takes effect on a fresh start.
 export const FIELDS = {
@@ -20,6 +21,7 @@ export const FIELDS = {
   'qbooth.password': { type: 'secret' },
   'qbooth.eventId': { type: 'string' },     // the event the settings run (and autoStart starts)
   'qbooth.autoStart': { type: 'bool' },     // start that event when the app opens, if none is running
+  brandName: { type: 'string' },            // the booth app's name to show; empty = what it reports (public/brand.js)
   assistantName: { type: 'string' },
   persona: { type: 'enum', values: ['ceria', 'formal', 'kalem', 'lucu', 'energik'] },
   talk: { type: 'enum', values: ['short', 'normal', 'chatty'], default: 'normal' }, // how much it says (chat.js TALK)
@@ -128,13 +130,13 @@ async function boothCall({ host, port, password }, method, p, body) {
   }
 }
 
-const boothError = e => e?.code === 'offline' ? `not reachable (${e.message}): is the Local API on in QBooth?`
+const boothError = e => e?.code === 'offline' ? `not reachable (${e.message}): is the Local API on in the booth app?`
   : e?.code === 'unauthorized' ? 'wrong password' : e?.code === 'too_many_attempts' ? 'too many wrong passwords, wait a minute'
     : [e?.code, e?.message].filter(Boolean).join(': ') || 'error';
 
 export async function testBooth(conn) {
   const j = await boothCall(conn, 'GET', 'status');
-  if (j.ok) return { ok: true, message: `${j.data.app?.name || 'QBooth'} ${j.data.app?.version || ''}` + (j.data.event ? ` · event: ${j.data.event.name}` : ' · no event running') };
+  if (j.ok) return { ok: true, brand: brandName(j.data.app?.name), message: `${brandName(j.data.app?.name) || 'Booth'} ${j.data.app?.version || ''}` + (j.data.event ? ` · event: ${j.data.event.name}` : ' · no event running') };
   return { ok: false, code: j.error?.code, detail: j.error?.message, message: boothError(j.error) };
 }
 
@@ -145,7 +147,8 @@ export async function boothAction(conn, { action, id }) {
     if (!s.ok) return { ok: false, code: s.error?.code, detail: s.error?.message, message: boothError(s.error) };
     const ev = await boothCall(conn, 'GET', 'events');
     return {
-      ok: true, message: `${s.data.app?.name || 'QBooth'} ${s.data.app?.version || ''}`,
+      // brand: the name it reports, as shown ("QBooth" -> "Q-Booth")
+      ok: true, brand: brandName(s.data.app?.name), message: `${brandName(s.data.app?.name) || 'Booth'} ${s.data.app?.version || ''}`,
       running: s.data.event, events: (ev.data || []).filter(e => !e.archived || e.running),
     };
   }
@@ -176,7 +179,7 @@ export async function testLlm(cfg, { provider, apiKey, model }) {
   try {
     const r = await fetch(p.url, {
       method: 'POST', signal: AbortSignal.timeout(20000),
-      headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + key, 'X-Title': 'QBooth Avatar' },
+      headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + key, 'X-Title': 'Avatar' },
       body: JSON.stringify({
         model: model || p.model, max_tokens: provider === 'gemini' ? 1024 : 64,
         messages: [{ role: 'user', content: 'Jawab dengan satu kata saja: siap' }],

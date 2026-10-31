@@ -1,28 +1,32 @@
 // Start-up screen: a progress bar and the step being worked on, until the
 // avatar, speech to text, the AI brain, the voice and the booth link are ready.
 // Steps that fail are shown and skipped, so the assistant still starts (with less).
+// {booth} / {Booth}: the booth app's name (brand.js), filled at each render (it becomes known
+// while this screen is up).
+import { fillBooth } from './brand.js';
+
 const T = {
   id: {
-    title: 'QBooth Avatar', avatar: 'Memuat avatar', stt: 'Menyalakan pendengaran', llm: 'Menyiapkan otak AI',
-    voice: 'Menyiapkan suara', booth: 'Menghubungkan ke photobooth', warming: 'memanaskan', loading: 'memuat model',
-    cloud: 'cloud', mock: 'mode uji (mock)', offline: 'QBooth belum terhubung, lanjut dulu', ready: 'Siap!',
+    title: 'Avatar', avatar: 'Memuat avatar', stt: 'Menyalakan pendengaran', llm: 'Menyiapkan otak AI',
+    voice: 'Menyiapkan suara', booth: 'Menghubungkan ke {booth}', warming: 'memanaskan', loading: 'memuat model',
+    cloud: 'cloud', mock: 'mode uji (mock)', offline: '{Booth} belum terhubung, lanjut dulu', ready: 'Siap!',
     failed: 'tidak aktif', browserVoice: 'suara browser', cloudFailed: 'cloud gagal, pakai AI lokal',
     download: 'Mengunduh (sekali saja)', downloadFailed: 'Unduhan gagal',
     havePart: 'Sudah punya filenya? Pilih', copying: 'Menyalin…',
     parts: { 'AI brain': 'Otak AI', 'AI brain model': 'Model otak AI', 'speech recognition': 'Pengenal suara', 'speech model': 'Model pengenal suara', 'voice engine': 'Mesin suara', voice: 'Suara' },
   },
   zh: {
-    title: 'QBooth Avatar', avatar: '加载形象', stt: '启动语音识别', llm: '准备 AI', voice: '准备声音', booth: '连接拍照亭',
-    warming: '预热中', loading: '加载模型', cloud: '云端', mock: '测试模式（mock）', offline: 'QBooth 还没连上，先继续', ready: '准备好了！',
+    title: 'Avatar', avatar: '加载形象', stt: '启动语音识别', llm: '准备 AI', voice: '准备声音', booth: '连接{booth}',
+    warming: '预热中', loading: '加载模型', cloud: '云端', mock: '测试模式（mock）', offline: '{booth}还没连上，先继续', ready: '准备好了！',
     failed: '未运行', browserVoice: '浏览器声音', cloudFailed: '云端失败，使用本地 AI',
     download: '下载中（仅一次）', downloadFailed: '下载失败',
     havePart: '已有这个文件？选择', copying: '复制中…',
     parts: { 'AI brain': 'AI 程序', 'AI brain model': 'AI 模型', 'speech recognition': '语音识别程序', 'speech model': '语音识别模型', 'voice engine': '语音引擎', voice: '声音' },
   },
   en: {
-    title: 'QBooth Avatar', avatar: 'Loading the avatar', stt: 'Starting speech recognition', llm: 'Getting the AI brain ready',
-    voice: 'Getting the voice ready', booth: 'Connecting to the photo booth', warming: 'warming up', loading: 'loading the model',
-    cloud: 'cloud', mock: 'test mode (mock)', offline: 'QBooth not connected yet, carrying on', ready: 'Ready!',
+    title: 'Avatar', avatar: 'Loading the avatar', stt: 'Starting speech recognition', llm: 'Getting the AI brain ready',
+    voice: 'Getting the voice ready', booth: 'Connecting to {booth}', warming: 'warming up', loading: 'loading the model',
+    cloud: 'cloud', mock: 'test mode (mock)', offline: '{Booth} not connected yet, carrying on', ready: 'Ready!',
     failed: 'not running', browserVoice: 'browser voice', cloudFailed: 'cloud failed, using the local AI',
     download: 'Downloading (first start only)', downloadFailed: 'Download failed',
     havePart: 'Have it already? Choose', copying: 'Copying…',
@@ -106,10 +110,10 @@ export async function runBoot({ lang, cfg, loadAvatar, warmVoice, boothOnline })
       else if (s.state === 'busy') { done += WEIGHT[k] * Math.min(0.9, (performance.now() - s.t0) / 1000 / EXPECT[k] * 0.9); current ||= k; }
       const icon = { wait: '○', busy: '◌', done: '✓', skip: '⚠' }[s.state];
       s.li.className = 'boot-' + s.state;
-      s.li.textContent = `${icon}  ${t[k]}${s.detail ? ' · ' + s.detail : ''}`;
+      s.li.textContent = `${icon}  ${fillBooth(t[k], lang)}${s.detail ? ' · ' + fillBooth(s.detail, lang) : ''}`;
     }
     bar.style.width = (100 * done / total).toFixed(1) + '%';
-    now.textContent = current ? `${t[current]}${steps[current].detail ? ' (' + steps[current].detail + ')' : ''}…` : t.ready;
+    now.textContent = current ? `${fillBooth(t[current], lang)}${steps[current].detail ? ' (' + fillBooth(steps[current].detail, lang) + ')' : ''}…` : t.ready;
   };
   const ticker = setInterval(render, 100);
 

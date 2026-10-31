@@ -1,8 +1,8 @@
 // QBooth Avatar (overlay): one exe that runs the page server and the AI servers
 // (speech to text, LLM, Piper: child processes) and shows only the character, on
 // top of everything, QBooth's event (kiosk) window included. Closing it stops everything.
-//   QBooth Avatar.exe          -> the real QBooth (config.json)
-//   QBooth Avatar.exe --mock   -> the built-in fake booth (or "mock": true in config.json)
+//   Avatar.exe          -> the real QBooth (config.json)
+//   Avatar.exe --mock   -> the built-in fake booth (or "mock": true in config.json)
 // The window is transparent and frameless, cut to the character's outline (the page
 // sends it, /app/shape), so a touch anywhere else reaches QBooth underneath.
 // Secret keys, from anywhere (QBooth usually has the focus):
@@ -88,7 +88,7 @@ if (!(await getLock())) {
     try {
       ({ port, cfg } = await startServer({ mock: process.argv.includes('--mock') || undefined, deferServices: true }));
     } catch (err) {
-      dialog.showErrorBox('QBooth Avatar', err.message);
+      dialog.showErrorBox('Avatar', err.message);
       app.quit();
       return;
     }
@@ -104,7 +104,7 @@ if (!(await getLock())) {
       show: false, // shown once the start-up screen is painted
       transparent: true, frame: false, resizable: false, skipTaskbar: true, hasShadow: false, alwaysOnTop: true,
       backgroundColor: '#00000000',
-      title: 'QBooth Avatar',
+      title: 'Avatar',
       webPreferences: { backgroundThrottling: false },
     });
     win.setMenu(null);

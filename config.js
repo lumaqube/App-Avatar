@@ -5,7 +5,7 @@ import { fileURLToPath } from 'node:url';
 
 const ROOT = path.dirname(fileURLToPath(import.meta.url));
 
-// Where config.json is looked for: next to "QBooth Avatar.exe" first (in the
+// Where config.json is looked for: next to "Avatar.exe" first (in the
 // packaged app the code sits deep in resources\app), then next to this file.
 export function configPath() {
   const candidates = [path.join(path.dirname(process.execPath), 'config.json'), path.join(ROOT, 'config.json')];
@@ -15,7 +15,7 @@ export function configPath() {
 // Where the settings screen saves: the existing config.json, else next to the
 // exe in the packaged app, else next to this file (development).
 export function configWritePath() {
-  const packaged = path.basename(process.execPath).toLowerCase() === 'qbooth avatar.exe';
+  const packaged = path.basename(process.execPath).toLowerCase() === 'avatar.exe';
   return configPath() || path.join(packaged ? path.dirname(process.execPath) : ROOT, 'config.json');
 }
 

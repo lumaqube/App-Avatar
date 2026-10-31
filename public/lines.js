@@ -1,5 +1,7 @@
 // Fixed lines, per language. Each key has variants; one is picked at random.
-// {name} = template name, {n} / {total} = shot numbers.
+// {name} = template name, {n} / {total} = shot numbers, {booth} = the booth app's name (brand.js).
+import { fillBooth } from './brand.js';
+
 export const LINES = {
   id: {
     greet: ['Halo! Selamat datang di photobooth. Yuk, foto bareng!', 'Hai! Senang ketemu kamu. Mau foto seru hari ini?', 'Halo, selamat datang! Bilang saja "ayo foto" kalau mau mulai.'],
@@ -20,9 +22,9 @@ export const LINES = {
     dialog: ['Ikuti petunjuk di layar ya.'],
     bye: ['Terima kasih! Sampai jumpa lagi.', 'Makasih sudah mampir! Dadah!'],
     noEvent: ['Photobooth sedang disiapkan. Sebentar ya.'],
-    offline: ['Koneksi ke Q-Booth terputus.'],
+    offline: ['Koneksi ke {booth} terputus.'],
     notHeard: ['Maaf, aku belum dengar. Coba ngomong lagi ya, agak dekat ke layar.', 'Hmm, suaranya belum masuk. Coba sekali lagi ya.'],
-    aiOffline: ['Maaf, aku lagi belum bisa ngobrol. Pakai tombol di layar Q-Booth dulu ya.'],
+    aiOffline: ['Maaf, aku lagi belum bisa ngobrol. Pakai tombol di layar {booth} dulu ya.'],
   },
   zh: {
     greet: ['你好！欢迎来到拍照亭。一起来拍照吧！', '嗨！很高兴见到你。今天想拍几张好玩的照片吗？', '你好，欢迎！想开始的话，就跟我说“我要拍照”。'],
@@ -43,9 +45,9 @@ export const LINES = {
     dialog: ['请按照屏幕上的提示操作。'],
     bye: ['谢谢！下次见。', '谢谢光临！拜拜！'],
     noEvent: ['拍照亭正在准备中，请稍等。'],
-    offline: ['和 Q-Booth 的连接断开了。'],
+    offline: ['和{booth}的连接断开了。'],
     notHeard: ['不好意思，我没听清。请再说一次，靠近屏幕一点。', '嗯，声音没进来。再试一次吧。'],
-    aiOffline: ['不好意思，我现在还不能聊天。请先用 Q-Booth 屏幕上的按钮。'],
+    aiOffline: ['不好意思，我现在还不能聊天。请先用{booth}屏幕上的按钮。'],
   },
   en: {
     greet: ['Hi! Welcome to the photo booth. Let\'s take a picture!', 'Hello! Nice to see you. Ready for some fun photos?', 'Welcome! Just say "let\'s take a photo" to start.'],
@@ -66,9 +68,9 @@ export const LINES = {
     dialog: ['Please follow the steps on the screen.'],
     bye: ['Thank you! See you again.', 'Thanks for stopping by! Bye!'],
     noEvent: ['The photo booth is getting ready. One moment.'],
-    offline: ['Lost connection to Q-Booth.'],
+    offline: ['Lost connection to {booth}.'],
     notHeard: ['Sorry, I didn\'t catch that. Try again, a little closer to the screen.', 'Hmm, I didn\'t hear you. One more time?'],
-    aiOffline: ['Sorry, I can\'t chat right now. Please use the buttons on the Q-Booth screen.'],
+    aiOffline: ['Sorry, I can\'t chat right now. Please use the buttons on {booth}\'s screen.'],
   },
 };
 
@@ -86,10 +88,11 @@ const ORDINAL_ID = ['', 'pertama', 'kedua', 'ketiga', 'keempat', 'kelima', 'keen
 const fill = (line, vars) => line.replace(/\{(\w+)\}/g, (_, k) =>
   k === 'nth' ? (ORDINAL_ID[vars.n] || 'ke-' + vars.n) : (vars[k] ?? ''));
 
+// The booth's name goes in first, then the line's own {name} / {n}.
 export function pick(lang, key, vars = {}) {
   const list = (LINES[lang] || LINES.id)[key];
   if (!list) return '';
-  return fill(list[Math.floor(Math.random() * list.length)], vars);
+  return fill(fillBooth(list[Math.floor(Math.random() * list.length)], lang), vars);
 }
 
 // Every line the avatar can say, for pre-rendering clips (tools/render-voice.mjs).
@@ -97,7 +100,7 @@ export function pick(lang, key, vars = {}) {
 // names, passed in (from the booth's events), and are skipped without them.
 export function allTexts(lang, templateNames = []) {
   const out = new Set();
-  for (const line of Object.values(LINES[lang] || {}).flat()) {
+  for (const line of Object.values(LINES[lang] || {}).flat().map(l => fillBooth(l, lang))) {
     if (/\{name\}/.test(line)) templateNames.forEach(name => out.add(fill(line, { name })));
     else if (/\{n(th)?\}/.test(line)) for (let n = 2; n <= 10; n++) out.add(fill(line, { n }));
     else out.add(line);

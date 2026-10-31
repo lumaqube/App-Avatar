@@ -1,4 +1,4 @@
-# QBooth Avatar (overlay)
+# Avatar (overlay)
 
 A virtual assistant that stands **on top of the running QBooth event screen**: a 3D
 character in a corner, nothing else. It greets guests, talks with them by voice, guides
@@ -9,14 +9,17 @@ presses QBooth's buttons for them when asked ("ayo foto", "yang kedua", "foto", 
 It has no camera, live view or screens of its own: QBooth does all the showing; the
 assistant only talks and presses.
 
-## From source: first setup
+## Run
 
-1. `npm install` (Node 20+). Electron is a dev dependency.
-2. Copy `config.example.json` to `config.json` and fill in your own values, or leave it and
-   set everything in the app's Settings. `config.json` holds passwords and API keys:
-   never commit or share it.
-3. `npm run app:mock` tries it with the built-in fake QBooth; `npm run app` runs it for real.
-   The first start downloads the AI tools and models (about 1.1 GB, see below).
+- Desktop app (the normal way): `npm run app` (`npm run app:mock` = with the built-in fake
+  QBooth; both clear `ELECTRON_RUN_AS_NODE`, which some shells set). Packaged:
+  `dist\Avatar-win32-x64\Avatar.exe`.
+- `npm run build` packages it (`--no-asar`; models and tools are copied in, ~5 GB).
+- `node server.js [--mock]` serves the page alone on http://127.0.0.1:3920 for testing in
+  a browser (add `?debug=1`); without the desktop app there is no overlay window.
+- Leftover AI servers (after a hard kill) are stopped by the app itself at the next start.
+
+Ports: page 3920, speech-to-text 3921, LLM 3922.
 
 ## Downloads on the first start (`setup.js`)
 
@@ -44,25 +47,34 @@ never downloaded again; a cut download resumes on the next start.
   `.zip` or its exe inside an existing folder (e.g. a portable build's
   `resources\app\tools\llama\llama-server.exe`: the whole folder is copied).
 - `"autoDownload": false` turns it off. Without internet, copy `tools/` and `models/`
-  from the portable build (`QBooth Avatar\resources\app\`) instead.
+  from the portable build (`Avatar\resources\app\`) instead.
 - A failed part is shown on the start-up screen; the app starts with what it has.
 
-## Run
+## Brands
 
-- Desktop app (the normal way): `npm run app` (`npm run app:mock` = with the built-in fake
-  QBooth; both clear `ELECTRON_RUN_AS_NODE`, which some shells set). Packaged:
-  `dist\QBooth Avatar-win32-x64\QBooth Avatar.exe`.
-- `npm run build` packages it (`--no-asar`; models and tools are copied in, ~5 GB).
-- `node server.js [--mock]` serves the page alone on http://127.0.0.1:3920 for testing in
-  a browser (add `?debug=1`); without the desktop app there is no overlay window.
-- Leftover AI servers (after a hard kill) are stopped by the app itself at the next start.
+The booth app comes in three brand builds with the same Local API: QBooth.exe ("QBooth"),
+BleepShare.exe ("BleepShareAI") and XBooth.exe ("XBooth"). The assistant works with all three and
+never names one on its own: the name it shows and says comes from the booth's status
+(`app.name`; "QBooth" is written "Q-Booth", a trailing " (mock)" is dropped), kept for the session
+([public/brand.js](public/brand.js), page and server alike). Before the first answer it says "the booth
+app" / "aplikasi booth" / "拍照亭应用" ("Booth" as the settings tab). `brandName` (Settings → the
+booth tab → Brand name) overrides the reported name.
 
-Ports: page 3920, speech-to-text 3921, LLM 3922.
+- Texts carry `{booth}` / `{Booth}` / `{boothShort}` (settings, start-up screen, fixed lines), filled
+  when shown; the settings fill them again when the name arrives while they are open.
+- The server sees the name in every status reply (its own calls and the page's `/qb/status`), gives it in
+  `/config.json` (`brand`, `brandSeen`) and `GET /brand`, and warms the prompt and the fixed lines
+  again when it changes.
+- The system prompt (chat.js, live.js) and whisper's vocabulary prompt (stt.js) use the name; the
+  Q-Booth pronunciations (pronounce.js) apply only when the booth is Q-Booth.
+- Pre-rendered voice clips are keyed on the text: lines naming another brand are voiced live.
+- The mock reports "QBooth" unless `mockBrand` (config) or the environment variable `QBA_MOCK_BRAND`
+  names another (e.g. `set QBA_MOCK_BRAND=XBooth` before `node server.js --mock`).
 
 ## QBooth
 
-1. QBooth: Settings → Advanced → Local API (Expert mode): on, note port and password.
-2. Hold the character 5 s (or Ctrl+Alt+Shift+S) → Settings → Q-Booth: address, port,
+1. The booth app: Settings → Advanced → Local API (Expert mode): on, note port and password.
+2. Hold the character 5 s (or Ctrl+Alt+Shift+S) → Settings → the booth tab: address, port,
    password → **Connect**. The **Event** list fills in (template counts, the running one
    marked). **Run** / **Stop** start and end an event in QBooth. "Run this event when the app
    opens" (`qbooth.autoStart`) launches it once QBooth answers, if none is running.
@@ -81,7 +93,7 @@ Ports: page 3920, speech-to-text 3921, LLM 3922.
   puts a hand to its chin, tilts its head, looks up, and a "•••" bubble shows beside its head
   (`Avatar.setThinking`, `#think`; the bubble is part of the window's shape).
 - Settings and the language screen take the whole screen while open (`/app/overlay {expand}`).
-  Settings come in tabs (Q-Booth, Assistant, AI brain, Look, Microphone, Security): a side menu
+  Settings come in tabs (the booth app's name, Assistant, AI brain, Look, Microphone, Security): a side menu
   on a landscape screen, a row of tabs on a portrait one, each tab fitting without scrolling.
 
 ### Controls
@@ -170,7 +182,7 @@ The voice is part of the cache key (`cache/tts`), and pre-rendered clips are onl
 
 [pronounce.js](pronounce.js) rewrites words the voice says wrong before they are spoken (the voice
 only). Checked by speaking each spelling with Piper and hearing it back with whisper: "Q-Booth"
-was heard as "keyboard", "QR" as "kier". Built in: Indonesian Q-Booth → Kyubuth, QR → kyu ar,
+was heard as "keyboard", "QR" as "kier". Built in: Indonesian Q-Booth → Kyubuth (the Q-Booth ones only when the booth is Q-Booth), QR → kyu ar,
 QRIS → kris, photobooth → fotobut, template(nya) → templet(nya), (di)scan → (di)sken,
 (di)upload → (di)aplod, online → onlen; Mandarin Q-Booth → 丘布斯, QR(码) → 二维码, QRIS → 克里斯
 (the Mandarin voice cannot say Latin letters). The owner adds more in Settings → Assistant →
@@ -197,6 +209,7 @@ language. Only the debug panel (developers) stays in English.
 | `port` | This app's page (3920) |
 | `qbooth.host / port / password` | QBooth Local API |
 | `qbooth.eventId / autoStart` | The event the settings run; launch it when the app opens |
+| `brandName` | The booth app's name to show and say; empty = what the booth reports (see Brands) |
 | `overlay.side / size / layout` | Start corner, % of screen height; where the character and buttons were placed |
 | `overlay.menuButton / langButton / langPin` | The ☰ and language buttons; the language button asks the PIN |
 | `display` | Screen for the start position (0 = main) |
@@ -212,7 +225,7 @@ language. Only the debug panel (developers) stays in English.
 | `tts.*` | Voice: Piper (id, zh: `zh_CN-huayan-medium`), Windows SAPI (en), OmniVoice; pre-rendered clips in `public/voice/` first |
 | `idleInviteSec / pollMs` | Invitation interval on Welcome; status poll |
 | `settingsPin` | PIN for the settings |
-| `mock` | The built-in fake QBooth |
+| `mock / mockBrand` | The built-in fake QBooth; the product name it reports (default "QBooth") |
 
 `config.json` holds the API password and keys: keep it out of git and screenshots.
 
@@ -226,6 +239,6 @@ language. Only the debug panel (developers) stays in English.
 | `services.js`, `stt.js`, `tts.js` | whisper-server, llama-server, Piper / SAPI / OmniVoice |
 | `settings.js` | Settings fields, Local API connect / run / stop, LLM test |
 | `mock-qbooth.js` | Fake QBooth Local API for tests |
-| `public/` | The page: `main.js`, `avatar.js` (VRM, gestures, outline), `voice.js`, `mic.js`, `brain.js`, `lines.js`, `settings.js`, `avatar-editor.js`, `boot.js` |
+| `public/` | The page: `main.js`, `avatar.js` (VRM, gestures, outline), `voice.js`, `mic.js`, `brain.js`, `lines.js`, `settings.js`, `avatar-editor.js`, `boot.js`, `brand.js` (the booth app's name, also used by the server) |
 | `setup.js` | Downloads missing tools and models on the first start |
 | `tools/`, `models/` | llama.cpp, whisper.cpp (CPU + CUDA), Piper; Qwen 3.5 0.8B (Q8_0, 774 MB), whisper small / large-v3-turbo |

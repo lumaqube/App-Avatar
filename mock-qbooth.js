@@ -1,6 +1,8 @@
 // A fake QBooth Local API (v1) for testing the assistant without the real app.
 // Same reply shapes and page / phase names as md_files/LOCAL_API.md in the QBooth repo.
 // Flow: welcome -> templatePicker -> camera (3 shots, 1 retake) -> processing -> result.
+// brand: the product name it reports (status.app.name), as the brand builds do: "QBooth",
+// "BleepShareAI" or "XBooth" (config "mockBrand" or env QBA_MOCK_BRAND, server.js).
 import http from 'node:http';
 import { listenRetry } from './listen.js';
 
@@ -10,7 +12,7 @@ const TEMPLATES = [
   { id: 't_ai', name: 'Cinematic AI', index: 3 },
 ];
 
-export function startMock(port, password) {
+export function startMock(port, password, brand = 'QBooth') {
   const s = {
     event: { id: 'mock_EVENT', name: 'Mock Wedding' },
     page: 'welcome',
@@ -40,7 +42,7 @@ export function startMock(port, password) {
 
   function status() {
     return {
-      app: { name: 'QBooth (mock)', version: '0.0.0', apiVersion: '1' },
+      app: { name: `${brand} (mock)`, version: '0.0.0', apiVersion: '1' },
       event: s.event, page: s.event ? s.page : 'none', session: s.session,
       camera: s.camera, result: s.result, busy: s.busy, available: available(),
     };

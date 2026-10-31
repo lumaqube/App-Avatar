@@ -21,6 +21,7 @@ import { loginOpenRouter } from './openrouter-login.js';
 import { liveUpgrade, LIVE_VOICES } from './live.js';
 import { avatarThumb } from './avatar-info.js';
 import { allTexts } from './public/lines.js';
+import { noteStatus, setBrandOverride, currentBrand, seenBrand, onBrand } from './public/brand.js';
 import { spawn } from 'node:child_process';
 
 const ROOT = path.dirname(fileURLToPath(import.meta.url));
@@ -36,7 +37,9 @@ async function qb(method, p, body) {
       method, body: body ? JSON.stringify(body) : undefined, signal: AbortSignal.timeout(4000),
       headers: { 'Authorization': 'Bearer ' + cfg.qbooth.password, 'Content-Type': 'application/json' },
     });
-    return await r.json();
+    const j = await r.json();
+    if (p === 'status' && j?.ok) noteStatus(j.data); // the booth app's name (brand.js)
+    return j;
   } catch (err) {
     return { ok: false, error: { code: 'offline', message: err.message } };
   }
@@ -90,7 +93,14 @@ function proxy(req, res) {
       },
     }, upRes => {
       res.writeHead(upRes.statusCode, { 'Content-Type': 'application/json', 'Cache-Control': 'no-store' });
-      upRes.pipe(res);
+      if (u.pathname !== '/qb/status') return upRes.pipe(res);
+      // a status reply: passed on, and the booth app's name noted (brand.js)
+      const got = [];
+      upRes.on('data', c => { got.push(c); res.write(c); });
+      upRes.on('end', () => {
+        res.end();
+        try { const j = JSON.parse(Buffer.concat(got).toString()); if (j?.ok) noteStatus(j.data); } catch { }
+      });
     });
     up.on('timeout', () => up.destroy(new Error('timeout')));
     up.on('error', err => sendJson(res, 502, { ok: false, error: { code: 'offline', message: err.message } }));
@@ -279,6 +289,7 @@ async function settingsRoute(req, res) {
     if (req.method === 'POST' && u.pathname === '/settings') {
       const changes = JSON.parse(await readBody(req, 64e3));
       let { restart } = saveSettings(cfg, MOCK, changes);
+      setBrandOverride(cfg.brandName); // (a change re-warms through onBrand)
       // another voice (the avatar's gender), or another system prompt: cache them again
       if (['avatar', 'avatarStyle', 'talk', 'persona', 'assistantName', 'eventInfo'].some(k => k in changes)) warmUp(cfg.language);
       // The local LLM now needed (local brain, or the cloud's stand-in) but not running: restart.
@@ -306,10 +317,12 @@ export async function startServer({ mock, deferServices } = {}) {
   cfg = loadConfig();
   MOCK = mock ?? !!cfg.mock;
   process.on('exit', stopAll);
+  setBrandOverride(cfg.brandName);
   if (MOCK) {
     cfg.realQbooth = cfg.qbooth; // what the settings screen shows and edits
     cfg.qbooth = { host: '127.0.0.1', port: 8739, password: 'mock' };
-    listening.push(await startMock(cfg.qbooth.port, cfg.qbooth.password));
+    // the product name the fake booth reports: "QBooth", "BleepShareAI", "XBooth"…
+    listening.push(await startMock(cfg.qbooth.port, cfg.qbooth.password, process.env.QBA_MOCK_BRAND || cfg.mockBrand || 'QBooth'));
   }
   chat = new Chat(cfg, qb);
   const server = http.createServer((req, res) => {
@@ -335,6 +348,9 @@ export async function startServer({ mock, deferServices } = {}) {
       localLlm: { state: services.llm.state, error: services.llm.error },
       setup, // first start from source: downloading the tools and models
     });
+    // The booth app's name to show (null = not known yet: a neutral word), the one it reported,
+    // and the "brandName" setting (public/brand.js).
+    if (p === '/brand') return sendJson(res, 200, { ok: true, brand: currentBrand(), seen: seenBrand(), override: cfg.brandName || '' });
     if (req.url.split('?')[0] === '/config.json') {
       const { qbooth, tts, stt, llm, realQbooth, settingsPin, ...pub } = cfg; // never the password or PIN
       return sendJson(res, 200, {
@@ -343,6 +359,7 @@ export async function startServer({ mock, deferServices } = {}) {
         live: llm.provider === 'gemini-live' && !!llm.gemini?.apiKey ? { voice: llm.live?.voice, bargeIn: !!llm.live?.bargeIn } : null,
         tts: { id: engineFor(cfg, 'id'), en: engineFor(cfg, 'en'), zh: engineFor(cfg, 'zh'), browserFallback: tts.browserFallback !== false },
         avatarGender: avatarGender(cfg), // the browser's own voice and Gemini Live's follow it
+        brand: currentBrand(), brandSeen: seenBrand(), // the booth app's name (public/brand.js)
       });
     }
     serveStatic(req, res);
@@ -365,10 +382,13 @@ export async function startServer({ mock, deferServices } = {}) {
   if (!deferServices) beginServices();
   checkCloud();
   autoStartEvent();
+  qb('GET', 'status'); // the booth app's name, early (brand.js)
+  // a new name: the system prompt and the fixed lines that say it are cached again
+  onBrand(b => { console.log(`booth app: ${b || '(not known)'}`); if (servicesBegun) warmUp(cfg.language); });
   // which Windows voices this PC has (a male Indonesian / Mandarin voice needs a language pack)
   loadWindowsVoices().then(() => { const v = voiceFor(cfg, langOf(cfg.language)); console.log(`voice (${avatarGender(cfg)}): ${v.engine} ${v.voice || v.model || ''}${v.fallback ? ' (the other gender: this one is not installed)' : ''}`); });
-  console.log(`QBooth Avatar: http://127.0.0.1:${cfg.port}/`);
-  console.log(MOCK ? 'QBooth: MOCK (fake booth on port 8739)' : `QBooth Local API: http://${cfg.qbooth.host}:${cfg.qbooth.port}/`);
+  console.log(`Avatar: http://127.0.0.1:${cfg.port}/`);
+  console.log(MOCK ? 'Booth: MOCK (fake booth on port 8739)' : `Booth Local API: http://${cfg.qbooth.host}:${cfg.qbooth.port}/`);
   console.log(`Live voice: id = ${engineFor(cfg, 'id')}, en = ${engineFor(cfg, 'en')}, zh = ${engineFor(cfg, 'zh')} (pre-rendered clips always first)`);
   return { port: cfg.port, cfg };
 }
@@ -402,20 +422,21 @@ export function beginServices() {
 // Once the local LLM is up: its prompt read into the cache (the first question answers as fast
 // as the next), and every fixed line's voice made, one at a time in the background (a live
 // answer waits for one line at most), so the fixed lines play at once from the first time.
-// Again for the new language when it changes.
-let warmLang = null;
+// Again for the new language, or a new booth name, when it changes.
+// A newer call (another language, a new booth name) takes over from a running one.
+let warmGen = 0;
 async function warmUp(lang) {
   lang = langOf(lang);
-  warmLang = lang;
+  const gen = ++warmGen;
   await setupDone; // the voice engine and the LLM may still be downloading
   for (let i = 0; i < 300 && ['starting', 'warming'].includes(services.llm.state); i++) await new Promise(r => setTimeout(r, 1000));
-  if (warmLang !== lang) return;
+  if (warmGen !== gen) return;
   await chat.warm(lang);
   let made = 0;
   const t0 = Date.now();
   const acks = Object.values(ACK).map(a => a[lang]).filter(t => t && !t.includes('{name}'));
   for (const text of [...allTexts(lang), ...acks]) {
-    if (warmLang !== lang) return; // the language changed meanwhile
+    if (warmGen !== gen) return; // the language or the booth name changed meanwhile
     try { const r = await speak(cfg, lang, text); if (r && r.source !== 'clip' && r.source !== 'cache') made++; } catch { }
   }
   if (made) console.log(`voice: ${made} fixed lines made for "${lang}" in ${((Date.now() - t0) / 1000).toFixed(1)} s`);

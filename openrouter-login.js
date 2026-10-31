@@ -17,7 +17,7 @@ const page = (title, body) => `<!doctype html><meta charset="utf-8"><title>${tit
 
 // Resolves with the key; rejects with an Error whose code is timeout, denied,
 // state_mismatch, exchange_failed or network.
-export function loginOpenRouter({ openExternal, timeoutMs = 5 * 60 * 1000, keyLabel = 'QBooth Avatar' }) {
+export function loginOpenRouter({ openExternal, timeoutMs = 5 * 60 * 1000, keyLabel = 'Avatar' }) {
   const fail = (code, msg) => Object.assign(new Error(msg || code), { code });
   const verifier = b64url(crypto.randomBytes(48));
   const challenge = b64url(crypto.createHash('sha256').update(verifier).digest());
@@ -37,8 +37,8 @@ export function loginOpenRouter({ openExternal, timeoutMs = 5 * 60 * 1000, keyLa
       const url = new URL(req.url, 'http://localhost');
       if (url.pathname !== '/callback') { res.writeHead(404).end(); return; }
       const send = ok => res.writeHead(ok ? 200 : 400, { 'content-type': 'text/html; charset=utf-8' })
-        .end(ok ? page('Terhubung / Connected', 'Tutup tab ini dan kembali ke QBooth Avatar.')
-          : page('Gagal / Not connected', 'Kembali ke QBooth Avatar dan coba lagi.'));
+        .end(ok ? page('Terhubung / Connected', 'Tutup tab ini dan kembali ke Avatar.')
+          : page('Gagal / Not connected', 'Kembali ke Avatar dan coba lagi.'));
       const code = url.searchParams.get('code');
       const gotState = url.searchParams.get('state');
       if (gotState && gotState !== state) { send(false); finish(fail('state_mismatch')); return; }

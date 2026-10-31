@@ -1,5 +1,6 @@
 // Speech to text through whisper-server (whisper.cpp). Input: a 16 kHz mono WAV.
 import { services } from './services.js';
+import { noteStatus, currentBrand } from './public/brand.js';
 
 // Whisper "hears" these in silence or noise; drop them.
 const HALLUCINATIONS = [
@@ -12,11 +13,12 @@ const HALLUCINATIONS = [
 ];
 
 // Words a guest is likely to say, given to whisper as its "prompt": it then
-// spells them right and mishears them less (template names above all).
+// spells them right and mishears them less (template names above all). {booth} = the booth
+// app's name (brand.js), when known.
 const VOCAB = {
-  id: 'Percakapan di photobooth Q-Booth. Ayo foto, mau foto, ambil foto, foto lagi, ulangi, template, pilih template, proses, lanjut, cetak, print, QR, scan, download, selesai, makasih.',
-  zh: '在 Q-Booth 拍照亭的对话。我要拍照，拍吧，重拍，模板，选模板，处理，继续，打印，二维码，扫码，下载，结束，谢谢。',
-  en: 'A conversation at a Q-Booth photo booth. Take a photo, retake, template, choose a template, process, print, QR code, scan, download, done, thanks.',
+  id: 'Percakapan di photobooth{booth}. Ayo foto, mau foto, ambil foto, foto lagi, ulangi, template, pilih template, proses, lanjut, cetak, print, QR, scan, download, selesai, makasih.',
+  zh: '在{booth}拍照亭的对话。我要拍照，拍吧，重拍，模板，选模板，处理，继续，打印，二维码，扫码，下载，结束，谢谢。',
+  en: 'A conversation at a{booth} photo booth. Take a photo, retake, template, choose a template, process, print, QR code, scan, download, done, thanks.',
 };
 
 // What a guest says on each screen, last in the prompt (whisper leans most on the end of it):
@@ -35,7 +37,10 @@ export function vocabPrompt(lang, templateNames = [], name = '', status = null) 
   const pick = !status || screen === 'welcome' || screen === 'templatePicker';
   const names = pick && templateNames.length ? ({ en: ' Templates: ', zh: ' 模板：' }[lang] || ' Template: ') + templateNames.join(', ') + '.' : '';
   const now = (SCREEN[lang] || SCREEN.id)[screen];
-  return (name ? name + '. ' : '') + (VOCAB[lang] || VOCAB.id) + names + (now ? ' ' + now : '');
+  noteStatus(status);
+  const b = currentBrand();
+  const vocab = (VOCAB[lang] || VOCAB.id).replace('{booth}', !b ? '' : lang === 'zh' ? ` ${b} ` : ` ${b}`);
+  return (name ? name + '. ' : '') + vocab + names + (now ? ' ' + now : '');
 }
 
 export async function transcribe(wav, lang, prompt) {

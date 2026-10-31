@@ -15,12 +15,17 @@ import { runBoot } from './boot.js';
 import { LiveLink } from './live.js';
 import { openAvatarEditor } from './avatar-editor.js';
 import { initLayout } from './layout.js';
+import { setBrandOverride, noteAppName, noteStatus } from './brand.js';
 
 const $ = id => document.getElementById(id);
 const cfg = await (await fetch('/config.json')).json();
 const params = new URLSearchParams(location.search);
 const lang = params.get('lang') || cfg.language || 'en';
 const ui = UI[lang] || UI.id;
+// The booth app's name (brand.js): the "brandName" setting, else the last one the server saw;
+// every status poll below keeps it up to date.
+setBrandOverride(cfg.brandName);
+noteAppName(cfg.brandSeen);
 document.documentElement.lang = lang;
 
 const avatar = new Avatar($('stage'));
@@ -82,6 +87,7 @@ function perform(r) {
 async function poll() {
   const r = await qb.status();
   const ok = !!(r.ok && r.data);
+  if (ok) noteStatus(r.data);
   setOnline(ok, ok ? null : r.error);
   if (ok && active) {
     const cur = r.data;
@@ -101,7 +107,7 @@ function setOnline(ok, error) {
   online = ok;
   $('dot').className = 'dot ' + (ok ? 'ok' : 'bad');
   $('conn').textContent = ok ? `connected${cfg.mock ? ' (MOCK)' : ''}` : `offline: ${error?.code || '?'}${error?.code === 'unauthorized' ? ' (check the password)' : ''}`;
-  log(ok ? 'QBooth connected' : 'QBooth not reachable: ' + (error?.message || error?.code));
+  log(ok ? 'booth connected' : 'booth not reachable: ' + (error?.message || error?.code));
 }
 
 // While the booth sits on Welcome and nobody is around, invite now and then.
@@ -351,7 +357,7 @@ function renderDebug(s) {
     ? `${s.app?.name} ${s.app?.version} · event: ${s.event?.name || '-'} · page: ${s.page}` +
       (s.camera ? ` · cam: ${s.camera.phase} ${s.camera.captured}/${s.camera.shots}` : '') +
       (s.busy?.processing ? ' · processing' : '') + (s.busy?.dialog ? ' · dialog' : '')
-    : `QBooth ${cfg.qbooth.host}:${cfg.qbooth.port}`;
+    : `booth ${cfg.qbooth.host}:${cfg.qbooth.port}`;
 }
 function log(msg) {
   console.log('[assistant]', msg);

@@ -2,13 +2,14 @@
 // With a settings PIN set, the PIN is asked first. Saves through POST /settings (settings.js
 // on the server). While it is open the window has the whole screen (main.js).
 import { Mic, thresholds } from './mic.js';
+import { fillBooth, isQBooth, onBrand, noteAppName, seenBrand } from './brand.js';
 
 const T = {
   id: {
-    title: 'Pengaturan', booth: 'Q-Booth', mode: 'Koneksi', real: 'QBooth (asli)', mock: 'Mock (uji tanpa QBooth)',
-    host: 'Alamat QBooth', port: 'Port Local API', password: 'Password Local API', kept: 'tersimpan (kosongkan = tetap)',
+    title: 'Pengaturan', booth: '{boothShort}', mode: 'Koneksi', real: '{boothShort} (asli)', mock: 'Mock (uji tanpa {booth})',
+    host: 'Alamat {boothShort}', port: 'Port Local API', password: 'Password Local API', kept: 'tersimpan (kosongkan = tetap)',
     testing: 'Mengetes…', assistant: 'Asisten', name: 'Nama asisten', language: 'Bahasa',
-    pron: 'Kamus pelafalan', pronHint: 'Satu kata per baris: tulisan = cara membacanya. Contoh: Q-Booth = Kyubuth · QRIS = kris. Q-Booth, QR, QRIS, template, scan, upload, online sudah diatur.',
+    pron: 'Kamus pelafalan', pronHint: 'Satu kata per baris: tulisan = cara membacanya. Contoh: QRIS = kris. QR, QRIS, template, scan, upload, online{qbooth} sudah diatur.',
     eventInfo: 'Info acara', eventHint: 'Nama acara, jadwal, letak toilet, dll. Asisten hanya menjawab dari sini.',
     look: 'Tampilan', avatar: 'Avatar', addVrm: 'Tambah VRM…', uploading: 'Mengunggah…',
     display: 'Layar', invite: 'Ajak tamu tiap (detik)',
@@ -35,10 +36,11 @@ const T = {
     gpuHint: 'Ganti kalau karakter beku/hilang atau ada kotak hitam di belakangnya. Berlaku setelah app dimulai ulang.',
     askLang: 'Pilih bahasa saat app dibuka', askLangHint: 'Layar Bahasa Indonesia / English / 中文 sebelum avatar menyapa.',
     connect: 'Hubungkan', connecting: 'Menghubungkan…', event: 'Event', connectFirst: '— hubungkan dulu —', pickEvent: '— pilih event —',
-    run: 'Jalankan', stop: 'Hentikan', running: 'berjalan', starting: 'Menjalankan…', stopping: 'Menghentikan…', started: '✓ Event berjalan di Q-Booth',
-    stopped: '✓ Event dihentikan', opening: 'Q-Booth sedang membuka event…', notYet: 'Perintah terkirim, tapi event belum terlihat berjalan. Cek layar Q-Booth.',
-    dialog: 'Ada dialog di layar Q-Booth: selesaikan di sana dulu.', otherRunning: 'Event lain sedang berjalan: hentikan dulu.',
-    tplCount: '{n} template', autoStart: 'Jalankan event ini saat app dibuka', autoStartHint: 'Hanya kalau di Q-Booth belum ada event yang berjalan.',
+    run: 'Jalankan', stop: 'Hentikan', running: 'berjalan', starting: 'Menjalankan…', stopping: 'Menghentikan…', started: '✓ Event berjalan di {booth}',
+    stopped: '✓ Event dihentikan', opening: '{Booth} sedang membuka event…', notYet: 'Perintah terkirim, tapi event belum terlihat berjalan. Cek layar {booth}.',
+    dialog: 'Ada dialog di layar {booth}: selesaikan di sana dulu.', otherRunning: 'Event lain sedang berjalan: hentikan dulu.',
+    tplCount: '{n} template', autoStart: 'Jalankan event ini saat app dibuka', autoStartHint: 'Hanya kalau di {booth} belum ada event yang berjalan.',
+    brandName: 'Nama brand', brandHint: 'Kosong = nama yang dilaporkan aplikasi booth.',
     ovSide: 'Posisi awal', right: 'Kanan bawah', left: 'Kiri bawah', ovSize: 'tinggi', ovPlace: 'Atur posisi karakter & tombol…',
     ovHint: 'Posisi awal dipakai sampai karakter dan tombol diatur dengan "Atur posisi".',
     ovKeys: 'Ketuk karakter = bicara · tahan 5 detik = pengaturan · Ctrl+Alt+Shift+S pengaturan · Ctrl+Alt+Shift+P atur posisi · Ctrl+Alt+Shift+Q keluar',
@@ -47,16 +49,16 @@ const T = {
     quit: 'Tutup app',
     voiceNow: 'Suara avatar', female: 'wanita', male: 'pria', voiceGender: 'ikut gender avatar (Ubah tampilan avatar → Suara)',
     voiceMissing: 'Suara {g} untuk bahasa ini belum terpasang di Windows, jadi dipakai suara lain. Pasang: Windows Settings → Time & language → Language & region → tambah bahasanya → Text-to-speech.',
-    err: { offline: 'Tidak terhubung ({d}): apakah Local API di Q-Booth sudah aktif?', unauthorized: 'Password salah', too_many_attempts: 'Terlalu banyak password salah: tunggu satu menit',
-      event_running: 'Sudah ada event yang berjalan', editor_open: 'Editor event di Q-Booth sedang terbuka: tutup dulu', dialog_open: 'Ada dialog di layar Q-Booth: selesaikan dulu',
-      no_event: 'Tidak ada event yang berjalan', processing: 'Foto sedang diproses, tunggu sebentar', busy: 'Q-Booth sedang sibuk, coba lagi sebentar', unknown_event: 'Event tidak ditemukan',
+    err: { offline: 'Tidak terhubung ({d}): apakah Local API di {booth} sudah aktif?', unauthorized: 'Password salah', too_many_attempts: 'Terlalu banyak password salah: tunggu satu menit',
+      event_running: 'Sudah ada event yang berjalan', editor_open: 'Editor event di {booth} sedang terbuka: tutup dulu', dialog_open: 'Ada dialog di layar {booth}: selesaikan dulu',
+      no_event: 'Tidak ada event yang berjalan', processing: 'Foto sedang diproses, tunggu sebentar', busy: '{Booth} sedang sibuk, coba lagi sebentar', unknown_event: 'Event tidak ditemukan',
       no_key: 'Belum ada API key', http: 'Penyedia AI mengembalikan error', local: 'AI lokal: lihat panel debug (D)' },
   },
   zh: {
-    title: '设置', booth: 'Q-Booth', mode: '连接', real: 'QBooth（正式）', mock: 'Mock（不连 QBooth 测试）',
-    host: 'QBooth 地址', port: 'Local API 端口', password: 'Local API 密码', kept: '已保存（留空则不变）',
+    title: '设置', booth: '{boothShort}', mode: '连接', real: '{boothShort}（正式）', mock: 'Mock（不连{booth}测试）',
+    host: '{boothShort} 地址', port: 'Local API 端口', password: 'Local API 密码', kept: '已保存（留空则不变）',
     testing: '测试中…', assistant: '助手', name: '助手名字', language: '语言',
-    pron: '发音词典', pronHint: '每行一个：写法 = 读法。例如 Q-Booth = Kyubuth · QRIS = kris。Q-Booth、QR、QRIS、template、scan、upload、online 已内置。',
+    pron: '发音词典', pronHint: '每行一个：写法 = 读法。例如 QRIS = kris。QR、QRIS、template、scan、upload、online{qbooth} 已内置。',
     eventInfo: '活动信息', eventHint: '活动名称、时间安排、洗手间位置…… 助手只根据这里回答。',
     look: '外观', avatar: '形象', addVrm: '添加 VRM…', uploading: '上传中…',
     display: '屏幕', invite: '邀请客人间隔（秒）',
@@ -83,10 +85,11 @@ const T = {
     gpuHint: '如果角色卡住、消失或背后出现黑框，请更换。重新启动后生效。',
     askLang: '启动时选择语言', askLangHint: '助手打招呼前先显示 Bahasa Indonesia / English / 中文 选择画面。',
     connect: '连接', connecting: '连接中…', event: '活动', connectFirst: '— 请先连接 —', pickEvent: '— 选择活动 —',
-    run: '运行', stop: '停止', running: '运行中', starting: '启动中…', stopping: '停止中…', started: '✓ 活动已在 Q-Booth 中运行',
-    stopped: '✓ 活动已停止', opening: 'Q-Booth 正在打开活动…', notYet: '已发送，但活动还没有显示为运行中。请查看 Q-Booth 屏幕。',
-    dialog: 'Q-Booth 屏幕上有一个对话框：请先在那里完成。', otherRunning: '另一个活动正在运行：请先停止它。',
-    tplCount: '{n} 个模板', autoStart: '应用启动时运行此活动', autoStartHint: '仅当 Q-Booth 中还没有活动在运行时。',
+    run: '运行', stop: '停止', running: '运行中', starting: '启动中…', stopping: '停止中…', started: '✓ 活动已在{booth}中运行',
+    stopped: '✓ 活动已停止', opening: '{booth}正在打开活动…', notYet: '已发送，但活动还没有显示为运行中。请查看{booth}屏幕。',
+    dialog: '{booth}屏幕上有一个对话框：请先在那里完成。', otherRunning: '另一个活动正在运行：请先停止它。',
+    tplCount: '{n} 个模板', autoStart: '应用启动时运行此活动', autoStartHint: '仅当{booth}中还没有活动在运行时。',
+    brandName: '品牌名称', brandHint: '留空 = 使用拍照亭应用报告的名称。',
     ovSide: '初始位置', right: '右下角', left: '左下角', ovSize: '高度', ovPlace: '摆放角色和按钮…',
     ovHint: '在摆放角色和按钮之前使用初始位置。',
     ovKeys: '点击角色 = 说话 · 按住 5 秒 = 设置 · Ctrl+Alt+Shift+S 设置 · Ctrl+Alt+Shift+P 摆放 · Ctrl+Alt+Shift+Q 退出',
@@ -95,16 +98,16 @@ const T = {
     quit: '关闭应用',
     voiceNow: '形象声音', female: '女声', male: '男声', voiceGender: '跟随形象的性别（编辑形象 → 声音）',
     voiceMissing: 'Windows 中没有安装该语言的{g}，所以用其他声音代替。安装方法：Windows 设置 → 时间和语言 → 语言和区域 → 添加该语言 → 文本转语音。',
-    err: { offline: '连接不上（{d}）：Q-Booth 的 Local API 打开了吗？', unauthorized: '密码错误', too_many_attempts: '密码错误次数太多，请等一分钟',
-      event_running: '已经有活动在运行', editor_open: 'Q-Booth 的活动编辑器正在打开：请先关闭', dialog_open: 'Q-Booth 屏幕上有对话框：请先完成',
-      no_event: '没有正在运行的活动', processing: '照片正在处理，请稍候', busy: 'Q-Booth 正忙，请稍后再试', unknown_event: '找不到这个活动',
+    err: { offline: '连接不上（{d}）：{booth}的 Local API 打开了吗？', unauthorized: '密码错误', too_many_attempts: '密码错误次数太多，请等一分钟',
+      event_running: '已经有活动在运行', editor_open: '{booth}的活动编辑器正在打开：请先关闭', dialog_open: '{booth}屏幕上有对话框：请先完成',
+      no_event: '没有正在运行的活动', processing: '照片正在处理，请稍候', busy: '{booth}正忙，请稍后再试', unknown_event: '找不到这个活动',
       no_key: '没有 API 密钥', http: '服务商返回错误', local: '本地 AI：请看调试面板（D）' },
   },
   en: {
-    title: 'Settings', booth: 'Q-Booth', mode: 'Connection', real: 'QBooth (real)', mock: 'Mock (test without QBooth)',
-    host: 'QBooth address', port: 'Local API port', password: 'Local API password', kept: 'saved (leave empty to keep)',
+    title: 'Settings', booth: '{boothShort}', mode: 'Connection', real: '{boothShort} (real)', mock: 'Mock (test without {booth})',
+    host: '{boothShort} address', port: 'Local API port', password: 'Local API password', kept: 'saved (leave empty to keep)',
     testing: 'Testing…', assistant: 'Assistant', name: 'Assistant name', language: 'Language',
-    pron: 'Pronunciations', pronHint: 'One a line: written = how to say it. E.g. Q-Booth = Kyubuth · QRIS = kris. Q-Booth, QR, QRIS, template, scan, upload, online are built in.',
+    pron: 'Pronunciations', pronHint: 'One a line: written = how to say it. E.g. QRIS = kris. QR, QRIS, template, scan, upload, online{qbooth} are built in.',
     eventInfo: 'Event info', eventHint: 'Event name, schedule, where the toilets are… The assistant only answers from this.',
     look: 'Look', avatar: 'Avatar', addVrm: 'Add VRM…', uploading: 'Uploading…',
     display: 'Screen', invite: 'Invite guests every (seconds)',
@@ -133,10 +136,11 @@ const T = {
     gpuHint: 'Change it if the character freezes, vanishes or shows a black box behind it. Applies after a restart.',
     askLang: 'Choose the language at launch', askLangHint: 'A Bahasa Indonesia / English / 中文 screen before the avatar greets.',
     connect: 'Connect', connecting: 'Connecting…', event: 'Event', connectFirst: '— connect first —', pickEvent: '— pick an event —',
-    run: 'Run', stop: 'Stop', running: 'running', starting: 'Starting…', stopping: 'Stopping…', started: '✓ The event is running in Q-Booth',
-    stopped: '✓ Event stopped', opening: 'Q-Booth is opening the event…', notYet: 'Sent, but the event does not show as running yet. Check the Q-Booth screen.',
-    dialog: 'A dialog is open on the Q-Booth screen: finish it there first.', otherRunning: 'Another event is running: stop it first.',
-    tplCount: '{n} templates', autoStart: 'Run this event when the app opens', autoStartHint: 'Only when no event is running in Q-Booth yet.',
+    run: 'Run', stop: 'Stop', running: 'running', starting: 'Starting…', stopping: 'Stopping…', started: '✓ The event is running in {booth}',
+    stopped: '✓ Event stopped', opening: '{Booth} is opening the event…', notYet: 'Sent, but the event does not show as running yet. Check {booth}\'s screen.',
+    dialog: 'A dialog is open on {booth}\'s screen: finish it there first.', otherRunning: 'Another event is running: stop it first.',
+    tplCount: '{n} templates', autoStart: 'Run this event when the app opens', autoStartHint: 'Only when no event is running in {booth} yet.',
+    brandName: 'Brand name', brandHint: 'Empty = the name the booth app reports.',
     ovSide: 'Start position', right: 'Bottom right', left: 'Bottom left', ovSize: 'height', ovPlace: 'Place the character & buttons…',
     ovHint: 'The start position is used until the character and buttons are placed.',
     ovKeys: 'Tap the character = talk · hold 5 s = settings · Ctrl+Alt+Shift+S settings · Ctrl+Alt+Shift+P placing · Ctrl+Alt+Shift+Q quit',
@@ -145,21 +149,45 @@ const T = {
     quit: 'Close the app',
     voiceNow: 'Avatar voice', female: 'female', male: 'male', voiceGender: "follows the avatar's gender (Edit the avatar → Voice)",
     voiceMissing: 'No {g} voice for this language is installed in Windows, so another one speaks. Install it: Windows Settings → Time & language → Language & region → add the language → Text-to-speech.',
-    err: { offline: 'Not reachable ({d}): is the Local API on in Q-Booth?', unauthorized: 'Wrong password', too_many_attempts: 'Too many wrong passwords: wait a minute',
-      event_running: 'An event is already running', editor_open: 'The event editor is open in Q-Booth: close it first', dialog_open: 'A dialog is open on the Q-Booth screen: finish it first',
-      no_event: 'No event is running', processing: 'A photo is being processed: wait a moment', busy: 'Q-Booth is busy: try again in a moment', unknown_event: 'Event not found',
+    err: { offline: 'Not reachable ({d}): is the Local API on in {booth}?', unauthorized: 'Wrong password', too_many_attempts: 'Too many wrong passwords: wait a minute',
+      event_running: 'An event is already running', editor_open: 'The event editor is open in {booth}: close it first', dialog_open: 'A dialog is open on {booth}\'s screen: finish it first',
+      no_event: 'No event is running', processing: 'A photo is being processed: wait a moment', busy: '{Booth} is busy: try again in a moment', unknown_event: 'Event not found',
       no_key: 'No API key', http: 'The provider answered with an error', local: 'Local AI: see the debug panel (D)' },
   },
 };
 
+// Texts name the booth app with {booth} / {Booth} / {boothShort} (brand.js); {qbooth} lists
+// Q-Booth among the built-in pronunciations, only when that is the booth app. A filled text
+// remembers its template (BoothText), and the elements showing one are filled again when the
+// name becomes known or changes while the settings are open (refreshBrand).
+const HAS_BOOTH = /\{(booth|Booth|boothShort|qbooth)\}/;
+const fillText = (tpl, lang) => fillBooth(tpl, lang).replace('{qbooth}', !isQBooth() ? '' : lang === 'zh' ? '、Q-Booth' : ', Q-Booth');
+class BoothText extends String {
+  constructor(tpl, lang) { super(fillText(tpl, lang)); this.tpl = tpl; this.lang = lang; }
+}
+const branded = (table, lang) => new Proxy(table, {
+  get(o, k) {
+    const v = o[k];
+    if (typeof v === 'string' && HAS_BOOTH.test(v)) return new BoothText(v, lang);
+    return v && typeof v === 'object' ? branded(v, lang) : v;
+  },
+});
+let bound = []; // [element, property, BoothText]
+function refreshBrand() {
+  bound = bound.filter(([e]) => e.isConnected);
+  for (const [e, k, b] of bound) e[k] = fillText(b.tpl, b.lang);
+}
+
 const el = (tag, props = {}, ...kids) => {
   const e = Object.assign(document.createElement(tag), props);
+  for (const [k, v] of Object.entries(props)) if (v instanceof BoothText) bound.push([e, k, v]);
   e.append(...kids.filter(k => k != null));
   return e;
 };
 
 export function initSettings({ lang, locked, onOpen, onAvatar }) {
-  const t = T[lang] || T.id;
+  const t = branded(T[lang] || T.id, lang);
+  onBrand(() => { if (overlay) refreshBrand(); });
   // A server answer in this language: its code, else (an unknown one) its own words.
   const errText = r => { const m = r.code && t.err[r.code]; return m ? m.replace('{d}', r.detail || '') + (r.code === 'http' && r.message ? ': ' + r.message : '') : r.message; };
   let pin = '';
@@ -211,7 +239,7 @@ export function initSettings({ lang, locked, onOpen, onAvatar }) {
     };
     const note = (m, text, ok) => { m.textContent = text; m.className = 'set-msg' + (ok == null ? '' : ok ? ' good' : ' bad'); };
 
-    // ---- Q-Booth: connect first, then the event list, Run / Stop ----
+    // ---- The booth app: connect first, then the event list, Run / Stop ----
     const mode = el('select', {}, el('option', { value: 'real', textContent: t.real, selected: !v.mock }), el('option', { value: 'mock', textContent: t.mock, selected: !!v.mock }));
     fields.mock = () => mode.value === 'mock';
     const pass = el('input', { type: 'password', placeholder: s.has['qbooth.password'] ? t.kept : '', autocomplete: 'new-password' });
@@ -240,6 +268,7 @@ export function initSettings({ lang, locked, onOpen, onAvatar }) {
       testBtn.disabled = false;
       note(testMsg, (r.ok ? '✓ ' + r.message : '✗ ' + errText(r)), r.ok);
       if (!r.ok) return;
+      if (r.brand && !v.mock && mode.value === 'real') noteAppName(r.brand);
       running = r.running;
       const want = eventSel.value || running?.id || '';
       eventSel.replaceChildren(el('option', { value: '', textContent: t.pickEvent }),
@@ -356,7 +385,7 @@ export function initSettings({ lang, locked, onOpen, onAvatar }) {
     sens.oninput = () => { sensVal.textContent = sens.value; };
     startMeter(meterFill, meterLine, () => thresholds(sens.value), mic.value);
 
-    const section = (title, ...rows) => el('fieldset', {}, el('legend', { textContent: title }), ...rows);
+    const section = (title, ...rows) => Object.assign(el('fieldset', {}, el('legend', { textContent: title }), ...rows), { tabTitle: title });
     const msg = el('div', { className: 'set-msg' });
     const saveBtn = el('button', { className: 'set-primary', textContent: t.saveBtn });
     const cancelBtn = el('button', { textContent: t.cancel });
@@ -364,9 +393,11 @@ export function initSettings({ lang, locked, onOpen, onAvatar }) {
     quitBtn.onclick = () => fetch('/settings/quit', { method: 'POST', headers: { 'x-settings-pin': pin } });
     const askLang = el('input', { type: 'checkbox', checked: v.askLanguage !== false });
     fields.askLanguage = () => askLang.checked;
-    const pron = el('textarea', { rows: 3, value: v.pronunciations || '', placeholder: 'Q-Booth = Kyubuth' });
+    const pron = el('textarea', { rows: 3, value: v.pronunciations || '', placeholder: isQBooth() ? 'Q-Booth = Kyubuth' : 'QRIS = kris' });
     fields.pronunciations = () => pron.value.trim();
     const info = el('textarea', { rows: 4, value: v.eventInfo || '' });
+    const brandIn = text('brandName');
+    brandIn.placeholder = seenBrand() || ''; // what the booth app reports
     fields.eventInfo = () => info.value.trim();
 
     // One tab per section: a side menu on a landscape screen, a row of tabs on a portrait one
@@ -378,7 +409,8 @@ export function initSettings({ lang, locked, onOpen, onAvatar }) {
         el('div', { className: 'set-row' }, el('span'), el('div', { className: 'set-inline' }, testBtn, testMsg)),
         row(t.event, el('div', { className: 'set-inline' }, eventSel, runBtn, stopBtn)),
         el('div', { className: 'set-row' }, el('span'), evMsg),
-        row(t.autoStart, check('qbooth.autoStart'), t.autoStartHint)),
+        row(t.autoStart, check('qbooth.autoStart'), t.autoStartHint),
+        row(t.brandName, brandIn, t.brandHint)),
       section(t.assistant,
         row(t.name, text('assistantName')),
         row(t.persona, select('persona', Object.entries(t.personas))),
@@ -419,7 +451,7 @@ export function initSettings({ lang, locked, onOpen, onAvatar }) {
     ];
     const nav = el('nav', { className: 'set-tabs' });
     const tabBtns = sections.map((fs, i) => {
-      const b = el('button', { type: 'button', textContent: fs.querySelector('legend').textContent });
+      const b = el('button', { type: 'button', textContent: fs.tabTitle });
       b.onclick = () => openTab(i);
       return b;
     });
