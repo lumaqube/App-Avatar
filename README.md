@@ -21,7 +21,8 @@ Docs (en / id / zh): the recipe, how it is built and run ([docs/Avatar_EN.md](do
 - Desktop app (the normal way): `npm run app` (`npm run app:mock` = with the built-in fake
   booth app; both clear `ELECTRON_RUN_AS_NODE`, which some shells set). Packaged:
   `dist\Avatar-win32-x64\Avatar.exe`.
-- `npm run build` packages it (`--no-asar`; models and tools are copied in, ~5 GB).
+- `npm run build` packages it (`--no-asar`, without `tools/` and `models/`: the exe downloads
+  them on its first start, below). A ready exe: the repo's **Releases** page.
 - `node server.js [--mock]` serves the page alone on http://127.0.0.1:3920 for testing in
   a browser (add `?debug=1`); without the desktop app there is no overlay window.
 - Leftover AI servers (after a hard kill) are stopped by the app itself at the next start.

@@ -10,7 +10,7 @@
     "mock": "node server.js --mock",
     "app": "set ELECTRON_RUN_AS_NODE=&& electron .",
     "app:mock": "set ELECTRON_RUN_AS_NODE=&& electron . --mock",
-    "build": "electron-packager . \"Avatar\" --platform=win32 --arch=x64 --out=dist --overwrite --no-asar --ignore=\"^[\\/](dist|cache|logs|config.json)([\\/]|$)\""
+    "build": "electron-packager . \"Avatar\" --platform=win32 --arch=x64 --out=dist --overwrite --no-asar --ignore=\"^[\\/](dist|cache|logs|models|tools|docs|config.json)([\\/]|$)\""
   },
   "dependencies": {
     "@pixiv/three-vrm": "^3.5.5",
